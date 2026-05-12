@@ -1,0 +1,462 @@
+/**
+ * ITR Knowledgebase — Admin Styles
+ *
+ * @package ITR_Knowledgebase
+ */
+
+/* ==========================================================================
+   Variables
+   ========================================================================== */
+:root {
+	--itr-kb-admin-primary:      #2271b1;
+	--itr-kb-admin-primary-dark: #135e96;
+	--itr-kb-admin-success:      #00a32a;
+	--itr-kb-admin-danger:       #d63638;
+	--itr-kb-admin-border:       #c3c4c7;
+	--itr-kb-admin-bg:           #f6f7f7;
+	--itr-kb-admin-card-bg:      #ffffff;
+	--itr-kb-admin-text:         #3c434a;
+	--itr-kb-admin-text-light:   #646970;
+	--itr-kb-admin-radius:       4px;
+	--itr-kb-admin-shadow:       0 1px 3px rgba(0,0,0,.1);
+}
+
+/* ==========================================================================
+   Styling Settings Page
+   ========================================================================== */
+
+.itr-kb-styling-form {
+	margin-top: 20px;
+}
+
+.itr-kb-styling-grid {
+	display: grid;
+	grid-template-columns: repeat( 2, 1fr );
+	gap: 20px;
+	margin-bottom: 24px;
+}
+
+.itr-kb-styling-group {
+	background: var(--itr-kb-admin-card-bg);
+	border: 1px solid var(--itr-kb-admin-border);
+	border-radius: var(--itr-kb-admin-radius);
+	padding: 20px;
+	box-shadow: var(--itr-kb-admin-shadow);
+}
+
+.itr-kb-styling-group--full {
+	grid-column: 1 / -1;
+}
+
+.itr-kb-styling-group__title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--itr-kb-admin-text);
+	margin: 0 0 6px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--itr-kb-admin-border);
+}
+
+.itr-kb-styling-group__title .dashicons {
+	color: var(--itr-kb-admin-primary);
+	font-size: 18px;
+}
+
+.itr-kb-styling-group__desc {
+	font-size: 12px;
+	color: var(--itr-kb-admin-text-light);
+	margin: 0 0 14px;
+}
+
+.itr-kb-styling-fields {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+/* Individual field row */
+.itr-kb-styling-field {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.itr-kb-styling-field__label {
+	flex: 1;
+	font-size: 13px;
+	color: var(--itr-kb-admin-text);
+	font-weight: 500;
+}
+
+/* Color input row */
+.itr-kb-styling-field__color-wrap {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.itr-kb-color-input {
+	width: 36px;
+	height: 36px;
+	padding: 2px;
+	border: 1px solid var(--itr-kb-admin-border);
+	border-radius: var(--itr-kb-admin-radius);
+	cursor: pointer;
+	background: none;
+}
+
+.itr-kb-color-hex {
+	width: 80px;
+	font-size: 12px;
+	font-family: Consolas, monospace;
+	padding: 4px 6px;
+	border: 1px solid var(--itr-kb-admin-border);
+	border-radius: var(--itr-kb-admin-radius);
+	text-transform: uppercase;
+}
+
+.itr-kb-color-reset {
+	background: none;
+	border: 1px solid var(--itr-kb-admin-border);
+	border-radius: var(--itr-kb-admin-radius);
+	padding: 4px 6px;
+	cursor: pointer;
+	color: var(--itr-kb-admin-text-light);
+	line-height: 1;
+	transition: all 0.15s ease;
+}
+
+.itr-kb-color-reset:hover {
+	border-color: var(--itr-kb-admin-primary);
+	color: var(--itr-kb-admin-primary);
+}
+
+.itr-kb-color-reset .dashicons {
+	font-size: 14px;
+	width: 14px;
+	height: 14px;
+	vertical-align: middle;
+}
+
+/* Custom CSS textarea */
+.itr-kb-styling-textarea {
+	width: 100%;
+	font-family: Consolas, Monaco, 'Courier New', monospace;
+	font-size: 13px;
+	line-height: 1.6;
+	border: 1px solid var(--itr-kb-admin-border);
+	border-radius: var(--itr-kb-admin-radius);
+	padding: 10px 14px;
+	resize: vertical;
+	color: var(--itr-kb-admin-text);
+	background: #1d2327;
+	color: #f0f0f1;
+}
+
+/* Submit bar */
+.itr-kb-styling-submit {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 16px 20px;
+	background: var(--itr-kb-admin-card-bg);
+	border: 1px solid var(--itr-kb-admin-border);
+	border-radius: var(--itr-kb-admin-radius);
+	box-shadow: var(--itr-kb-admin-shadow);
+}
+
+.itr-kb-styling-submit .button-primary {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.itr-kb-styling-submit .button-primary .dashicons {
+	font-size: 16px;
+}
+
+/* Notices */
+.itr-kb-settings-notice {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 14px;
+	border-radius: var(--itr-kb-admin-radius);
+	font-size: 13px;
+	margin-bottom: 16px;
+}
+
+.itr-kb-settings-notice--info {
+	background: #e8f4fd;
+	border-left: 3px solid var(--itr-kb-admin-primary);
+	color: #0066a0;
+}
+
+@media ( max-width: 1200px ) {
+	.itr-kb-styling-grid {
+		grid-template-columns: 1fr;
+	}
+	.itr-kb-styling-group--full {
+		grid-column: 1;
+	}
+}
+
+/* ==========================================================================
+   Wrap & Layout
+   ========================================================================== */
+.itr-kb-wrap {
+	max-width: 960px;
+}
+
+.itr-kb-wrap h1 {
+	margin-bottom: 16px;
+}
+
+.itr-kb-card {
+	background: var(--itr-kb-admin-card-bg);
+	border: 1px solid var(--itr-kb-admin-border);
+	border-radius: var(--itr-kb-admin-radius);
+	padding: 24px 28px;
+	margin-top: 20px;
+	box-shadow: var(--itr-kb-admin-shadow);
+}
+
+.itr-kb-card h2 {
+	margin-top: 0;
+	font-size: 16px;
+	color: var(--itr-kb-admin-text);
+	border-bottom: 1px solid var(--itr-kb-admin-border);
+	padding-bottom: 12px;
+	margin-bottom: 16px;
+}
+
+/* Tab content area */
+.itr-kb-tab-content {
+	margin-top: 0;
+}
+
+/* ==========================================================================
+   Meta Boxes
+   ========================================================================== */
+.itr-kb-meta-box {
+	padding: 4px 0;
+}
+
+.itr-kb-meta-box .itr-kb-field {
+	margin-bottom: 14px;
+}
+
+.itr-kb-meta-box .itr-kb-field label {
+	display: block;
+	margin-bottom: 4px;
+	color: var(--itr-kb-admin-text);
+}
+
+.itr-kb-meta-box select {
+	width: 100%;
+	max-width: 100%;
+}
+
+.itr-kb-meta-box .description {
+	color: var(--itr-kb-admin-text-light);
+	font-size: 12px;
+	margin-top: 4px;
+}
+
+/* Stats box */
+.itr-kb-stats-box table {
+	border-collapse: collapse;
+}
+
+.itr-kb-stats-box td {
+	vertical-align: middle;
+}
+
+.itr-kb-stats-box .dashicons {
+	vertical-align: middle;
+	margin-right: 4px;
+}
+
+/* ==========================================================================
+   Category Term Fields
+   ========================================================================== */
+.itr-kb-image-preview {
+	margin-top: 8px;
+}
+
+.itr-kb-image-preview img {
+	display: block;
+	max-width: 150px;
+	height: auto;
+	border: 1px solid var(--itr-kb-admin-border);
+	border-radius: var(--itr-kb-admin-radius);
+}
+
+/* ==========================================================================
+   Category Drag-Drop Ordering
+   ========================================================================== */
+.itr-kb-sortable {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.itr-kb-sortable li {
+	background: var(--itr-kb-admin-card-bg);
+	border: 1px solid var(--itr-kb-admin-border);
+	border-radius: var(--itr-kb-admin-radius);
+	padding: 10px 14px;
+	margin-bottom: 4px;
+	cursor: grab;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.itr-kb-sortable li:hover {
+	background: var(--itr-kb-admin-bg);
+}
+
+.itr-kb-sortable li.ui-sortable-helper {
+	cursor: grabbing;
+	box-shadow: 0 4px 12px rgba(0,0,0,.15);
+	border-color: var(--itr-kb-admin-primary);
+}
+
+.itr-kb-sortable li.ui-sortable-placeholder {
+	background: #e8f0fe;
+	border: 2px dashed var(--itr-kb-admin-primary);
+	visibility: visible !important;
+}
+
+.itr-kb-sortable__handle {
+	color: var(--itr-kb-admin-text-light);
+	cursor: grab;
+	font-size: 18px;
+}
+
+.itr-kb-sortable__name {
+	flex: 1;
+	font-weight: 500;
+}
+
+.itr-kb-sortable__children {
+	padding-left: 24px;
+	margin-top: 4px;
+}
+
+/* Save order button feedback */
+.itr-kb-order-saved {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--itr-kb-admin-success);
+	font-weight: 500;
+	margin-left: 10px;
+}
+
+/* ==========================================================================
+   Import / Export Page
+   ========================================================================== */
+.itr-kb-wrap .nav-tab-wrapper {
+	margin-bottom: 0;
+}
+
+.itr-kb-wrap .form-table th {
+	width: 200px;
+	padding: 12px 10px;
+}
+
+.itr-kb-wrap .form-table td {
+	padding: 12px 10px;
+}
+
+/* ==========================================================================
+   Settings Page
+   ========================================================================== */
+.itr-kb-wrap .form-table input[type="text"],
+.itr-kb-wrap .form-table input[type="number"] {
+	min-width: 200px;
+}
+
+.itr-kb-wrap .form-table textarea {
+	font-family: Consolas, Monaco, 'Courier New', monospace;
+	font-size: 13px;
+	line-height: 1.6;
+}
+
+/* ==========================================================================
+   Admin Notices
+   ========================================================================== */
+.itr-kb-notice {
+	border-left-color: var(--itr-kb-admin-primary);
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+@media (max-width: 782px) {
+	.itr-kb-card {
+		padding: 16px;
+	}
+
+	.itr-kb-wrap .form-table th,
+	.itr-kb-wrap .form-table td {
+		display: block;
+		width: 100%;
+		padding: 8px 0;
+	}
+}
+/* ==========================================================================
+   Inheritance Status Badges — Author & Reviewer Meta Box
+   ========================================================================== */
+
+.itr-kb-inheritance-badge-wrap {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 4px;
+	min-height: 22px;
+}
+
+.itr-kb-status-badge {
+	display: inline-block;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1;
+	padding: 3px 8px;
+	border-radius: 3px;
+}
+
+.itr-kb-status-badge--inherited {
+	background: #e8f5e9;
+	color: #2e7d32;
+	border: 1px solid #a5d6a7;
+}
+
+.itr-kb-status-badge--manual {
+	background: #fff3e0;
+	color: #e65100;
+	border: 1px solid #ffcc80;
+}
+
+.itr-kb-status-badge--empty {
+	background: #f5f5f5;
+	color: #757575;
+	border: 1px solid #e0e0e0;
+}
+
+.itr-kb-clear-override {
+	font-size: 11px;
+	color: #b32d2e !important;
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.itr-kb-clear-override:hover {
+	color: #8a2020 !important;
+}
