@@ -4,7 +4,7 @@
  * Plugin URI:        https://itr.com/knowledgebase
  * Description:       A powerful, fully customizable Knowledge Base plugin for WordPress with Elementor support.
  * Version:           1.0.0
- * Author:            Naeem Afridi
+ * Author:            ITR
  * Author URI:        https://itroadway.com
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt

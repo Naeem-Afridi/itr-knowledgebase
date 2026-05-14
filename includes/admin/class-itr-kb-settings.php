@@ -22,6 +22,80 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ITR_KB_Settings {
 
 	/**
+	 * Option keys that belong exclusively to the Styling tab.
+	 * Used by handle_styling_save() to avoid touching options from other tabs.
+	 *
+	 * @var array
+	 */
+	private static $styling_option_keys = array(
+		// Typography.
+		'itr_kb_font_heading',
+		'itr_kb_font_body',
+		// Global Colors.
+		'itr_kb_color_primary',
+		'itr_kb_color_primary_dark',
+		'itr_kb_color_heading',
+		'itr_kb_color_text',
+		'itr_kb_color_text_light',
+		'itr_kb_color_link',
+		'itr_kb_color_border',
+		'itr_kb_color_bg',
+		'itr_kb_color_card_bg',
+		// Banner.
+		'itr_kb_banner_bg_from',
+		'itr_kb_banner_bg_to',
+		'itr_kb_banner_title',
+		'itr_kb_banner_title_text',
+		// Buttons.
+		'itr_kb_btn_bg',
+		'itr_kb_btn_text',
+		'itr_kb_btn_bg_hover',
+		'itr_kb_btn_radius',
+		// Sidebar.
+		'itr_kb_sidebar_bg',
+		'itr_kb_sidebar_link',
+		'itr_kb_sidebar_link_active',
+		'itr_kb_sidebar_border',
+		// Article.
+		'itr_kb_article_title',
+		'itr_kb_article_body',
+		'itr_kb_article_link',
+		'itr_kb_article_meta',
+		'itr_kb_article_font_size',
+		// TOC styling (NOT itr_kb_toc_enabled which belongs to General tab).
+		'itr_kb_toc_bg',
+		'itr_kb_toc_border',
+		'itr_kb_toc_title',
+		'itr_kb_toc_link',
+		'itr_kb_toc_link_active',
+		// Search bar styling (NOT itr_kb_search_enabled/highlight which belong to Search tab).
+		'itr_kb_search_input_bg',
+		'itr_kb_search_input_text',
+		'itr_kb_search_btn_bg',
+		'itr_kb_search_btn_icon',
+		'itr_kb_search_border',
+		'itr_kb_search_radius',
+		// Category cards.
+		'itr_kb_cat_card_bg',
+		'itr_kb_cat_card_title',
+		'itr_kb_cat_card_border',
+		'itr_kb_cat_card_link',
+		'itr_kb_cat_card_radius',
+		// Author box.
+		'itr_kb_author_box_bg',
+		'itr_kb_author_box_name',
+		'itr_kb_author_box_bio',
+		'itr_kb_author_box_border',
+		// Navigation.
+		'itr_kb_nav_bg',
+		'itr_kb_nav_border',
+		'itr_kb_nav_link',
+		'itr_kb_nav_label',
+		// Custom CSS.
+		'itr_kb_custom_css',
+	);
+
+	/**
 	 * All registered option keys with their sanitize callbacks.
 	 * Used for bulk sanitization and uninstall cleanup.
 	 *
@@ -347,29 +421,15 @@ class ITR_KB_Settings {
 
 		$saved = 0;
 
-		// Save each option by its type.
-		foreach ( self::$option_keys as $key => $type ) {
-			// Only process styling options.
-			if ( strpos( $key, 'itr_kb_color_' ) === false
-				&& strpos( $key, 'itr_kb_banner_' ) === false
-				&& strpos( $key, 'itr_kb_btn_' ) === false
-				&& strpos( $key, 'itr_kb_sidebar_' ) === false
-				&& strpos( $key, 'itr_kb_article_' ) === false
-				&& strpos( $key, 'itr_kb_toc_' ) === false
-				&& strpos( $key, 'itr_kb_search_input' ) === false
-				&& strpos( $key, 'itr_kb_search_btn' ) === false
-				&& strpos( $key, 'itr_kb_search_border' ) === false
-				&& strpos( $key, 'itr_kb_search_radius' ) === false
-				&& strpos( $key, 'itr_kb_cat_card' ) === false
-				&& strpos( $key, 'itr_kb_author_box' ) === false
-				&& strpos( $key, 'itr_kb_nav_' ) === false
-				&& $key !== 'itr_kb_custom_css'
-			) {
-				continue;
-			}
+		// Iterate only over the explicit styling option keys.
+		// Using a fixed list prevents accidentally touching options from other tabs
+		// (e.g. itr_kb_toc_enabled from General, itr_kb_search_enabled from Search)
+		// that share a name prefix with styling options.
+		foreach ( self::$styling_option_keys as $key ) {
+			$type = self::$option_keys[ $key ] ?? 'text';
 
 			if ( ! isset( $_POST[ $key ] ) ) {
-				// Checkboxes not set = false.
+				// Unchecked checkbox = false; other types keep their current value.
 				if ( 'boolean' === $type ) {
 					update_option( $key, false );
 					$saved++;
