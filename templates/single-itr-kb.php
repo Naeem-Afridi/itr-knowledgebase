@@ -29,7 +29,8 @@ while ( have_posts() ) :
 	$author_id    = ITR_KB_Utils::get_meta( get_the_ID(), '_itr_kb_author_id', 0 );
 	$reviewer_ids = ITR_KB_Utils::get_meta( get_the_ID(), '_itr_kb_reviewer_ids', array() );
 	$has_author_box = $author_id || ! empty( $reviewer_ids );
-	$toc_disabled = ITR_KB_Utils::get_meta( get_the_ID(), '_itr_kb_toc_disabled', '0' );
+	$toc_disabled = ITR_KB_Utils::get_meta( get_the_ID(), '_itr_kb_toc_disabled', '' );
+	$toc_disabled = ( '1' === (string) $toc_disabled );
 
 	// Build TOC.
 	$toc_instance = new \ITR_Knowledgebase\Frontend\ITR_KB_TOC();
@@ -70,12 +71,18 @@ while ( have_posts() ) :
 	?>
 
 	<div class="itr-kb-single-wrap">
-		<div class="itr-kb-single-inner <?php echo $show_toc ? 'itr-kb-single-inner--has-toc' : ''; ?>">
+		<?php
+		// Resolve TOC banner now so we can show the left column even when TOC has no headings.
+		$_toc_banner = \ITR_Knowledgebase\Includes\ITR_KB_Banner::resolve( get_the_ID(), 'desktop_toc' );
+		$show_toc_column = $show_toc || ! empty( $_toc_banner['image_url'] );
+		?>
+		<div class="itr-kb-single-inner <?php echo $show_toc_column ? 'itr-kb-single-inner--has-toc' : ''; ?>">
 
-			<!-- LEFT: Table of Contents (only when TOC is enabled) -->
-			<?php if ( $show_toc ) : ?>
+			<!-- LEFT: TOC column — shown when TOC has headings OR a TOC banner is set -->
+			<?php if ( $show_toc_column ) : ?>
 				<aside class="itr-kb-single-toc" aria-label="<?php esc_attr_e( 'Table of Contents', 'itr-knowledgebase' ); ?>">
 					<div class="itr-kb-single-toc__sticky">
+						<?php if ( $show_toc ) : // TOC list — only when article has headings ?>
 						<div class="itr-kb-toc" id="itr-kb-toc" role="navigation">
 							<div class="itr-kb-toc__header">
 								<span class="itr-kb-toc__title"><?php esc_html_e( 'Table of Contents', 'itr-knowledgebase' ); ?></span>
@@ -108,14 +115,24 @@ while ( have_posts() ) :
 								?>
 							</ol>
 						</div>
-					</div>
+						<?php endif; // end $show_toc — banner always renders below whether TOC is shown or not ?>
+
+						<?php
+						// Desktop TOC Banner — always inside sticky container.
+						// Sticks with TOC when both visible; shows alone when no headings.
+						\ITR_Knowledgebase\Includes\ITR_KB_Banner::render( get_the_ID(), 'desktop_toc' );
+						?>
+					</div><!-- /.itr-kb-single-toc__sticky -->
 				</aside>
-			<?php endif; ?>
+			<?php endif; // end $show_toc_column ?>
 
 			<!-- CENTER: Article -->
 			<main class="itr-kb-single-main" id="itr-kb-main" role="main">
 
-				<!-- Breadcrumb -->
+				<?php
+				// Mobile Top Banner — above article content, mobile only.
+				\ITR_Knowledgebase\Includes\ITR_KB_Banner::render( get_the_ID(), 'mobile_top' );
+				?>
 				<div class="itr-kb-single-breadcrumb">
 					<a href="<?php echo esc_url( $kb_archive ); ?>" class="itr-kb-single-breadcrumb__all">
 						&#8592; <?php esc_html_e( 'All Topics', 'itr-knowledgebase' ); ?>
@@ -226,6 +243,11 @@ while ( have_posts() ) :
 
 				</article>
 
+				<?php
+				// Mobile Bottom Banner — below article content, mobile only.
+				\ITR_Knowledgebase\Includes\ITR_KB_Banner::render( get_the_ID(), 'mobile_bottom' );
+				?>
+
 			</main>
 
 			<!-- RIGHT: Category Sidebar (collapsible, all closed by default except active path) -->
@@ -289,6 +311,11 @@ while ( have_posts() ) :
 				<ul class="itr-kb-single-sidebar__list itr-kb-archive-sidebar__list">
 					<?php $_render_sidebar( $category_tree, $current_term_id, $_sidebar_ancestors ); ?>
 				</ul>
+				<?php
+				// Desktop Categories Banner — inside the sidebar column, below the category tree.
+				// Must stay inside the <aside> so it stays in the same CSS grid cell.
+				\ITR_Knowledgebase\Includes\ITR_KB_Banner::render( get_the_ID(), 'desktop_categories' );
+				?>
 			</aside>
 
 		</div><!-- .itr-kb-single-inner -->

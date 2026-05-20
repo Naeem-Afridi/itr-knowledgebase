@@ -338,7 +338,122 @@
 	};
 
 	/**
-	 * Bootstrap all modules on DOM ready.
+	 * Banner image upload, preview, and remove for category screens.
+	 */
+	var ITR_KB_BannerUploader = {
+
+		MAX_SIZE: 5 * 1024 * 1024, // 5 MB
+
+		ALLOWED_TYPES: [ 'image/jpeg', 'image/png', 'image/gif', 'image/webp' ],
+
+		init: function () {
+			if ( ! $( '.itr-kb-banner-pair__inner' ).length ) {
+				return;
+			}
+			this.bindUpload();
+			this.bindRemove();
+			this.bindUrlValidation();
+		},
+
+		bindUpload: function () {
+			var self = this;
+
+			$( document ).on( 'click', '.itr-kb-banner-upload', function ( e ) {
+				e.preventDefault();
+
+				var $btn     = $( this );
+				var $pair    = $btn.closest( '.itr-kb-banner-pair__inner' );
+				var $input   = $pair.find( '.itr-kb-banner-image-id' );
+				var $preview = $pair.find( '.itr-kb-banner-preview-img' );
+				var $remove  = $pair.find( '.itr-kb-banner-remove' );
+				var $error   = $pair.find( '.itr-kb-banner-error' );
+
+				$error.hide().text( '' );
+
+				var frame = wp.media( {
+					title:    itrKbAdmin.mediaTitle,
+					button:   { text: itrKbAdmin.mediaButton },
+					multiple: false,
+					library:  { type: [ 'image/jpeg', 'image/png', 'image/gif', 'image/webp' ] },
+				} );
+
+				frame.on( 'select', function () {
+					var attachment = frame.state().get( 'selection' ).first().toJSON();
+
+					// Client-side size check before saving.
+					if ( attachment.filesizeInBytes && attachment.filesizeInBytes > self.MAX_SIZE ) {
+						$error.text( 'File too large. Maximum allowed size is 5 MB.' ).show();
+						return;
+					}
+
+					// Validate mime type client-side.
+					if ( self.ALLOWED_TYPES.indexOf( attachment.mime ) === -1 ) {
+						$error.text( 'Unsupported format. Use JPG, PNG, GIF, or WebP.' ).show();
+						return;
+					}
+
+					// All good — update fields.
+					$input.val( attachment.id );
+
+					var previewUrl = ( attachment.sizes && attachment.sizes.medium )
+						? attachment.sizes.medium.url
+						: attachment.url;
+
+					$preview.attr( 'src', previewUrl ).show();
+					$remove.show();
+					$error.hide().text( '' );
+				} );
+
+				frame.open();
+			} );
+		},
+
+		bindRemove: function () {
+			$( document ).on( 'click', '.itr-kb-banner-remove', function ( e ) {
+				e.preventDefault();
+
+				var $btn     = $( this );
+				var $pair    = $btn.closest( '.itr-kb-banner-pair__inner' );
+				var $input   = $pair.find( '.itr-kb-banner-image-id' );
+				var $preview = $pair.find( '.itr-kb-banner-preview-img' );
+				var $url     = $pair.find( '.itr-kb-banner-url' );
+				var $error   = $pair.find( '.itr-kb-banner-error' );
+
+				// Clear image, preview, URL, and errors.
+				$input.val( '' );
+				$preview.attr( 'src', '' ).hide();
+				$url.val( '' );
+				$error.hide().text( '' );
+				$btn.hide();
+			} );
+		},
+
+		bindUrlValidation: function () {
+			$( document ).on( 'blur', '.itr-kb-banner-url', function () {
+				var $input    = $( this );
+				var $error    = $input.closest( '.itr-kb-banner-pair__url-row' ).find( '.itr-kb-banner-url-error' );
+				var val       = $.trim( $input.val() );
+
+				if ( ! val ) {
+					$error.hide().text( '' );
+					return;
+				}
+
+				// Simple URL validation.
+				try {
+					var url = new URL( val );
+					if ( url.protocol !== 'http:' && url.protocol !== 'https:' ) {
+						throw new Error( 'Invalid protocol' );
+					}
+					$error.hide().text( '' );
+				} catch ( err ) {
+					$error.text( 'Please enter a valid URL (e.g. https://example.com).' ).show();
+				}
+			} );
+		},
+	};
+
+	/**
 	 */
 	$( function () {
 		ITR_KB_MediaUploader.init();
@@ -347,6 +462,7 @@
 		ITR_KB_Import.init();
 		ITR_KB_MetaBox.init();
 		ITR_KB_InheritanceBadge.init();
+		ITR_KB_BannerUploader.init();
 		// Font family selector — show/hide custom input.
 		$( document ).on( 'change', '.itr-kb-font-select', function () {
 			var $wrap  = $( this ).closest( '.itr-kb-font-wrap' );

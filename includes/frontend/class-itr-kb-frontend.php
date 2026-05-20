@@ -76,6 +76,28 @@ class ITR_KB_Frontend {
 	}
 
 	/**
+	 * Set articles per page on KB archive/taxonomy pages using the plugin setting.
+	 * Prevents WordPress's global "Blog pages show at most X posts" from limiting results.
+	 *
+	 * @param \WP_Query $query The current query object.
+	 * @return void
+	 */
+	public function set_articles_per_page( $query ) {
+		if ( is_admin() || ! $query->is_main_query() ) {
+			return;
+		}
+
+		if (
+			$query->is_post_type_archive( 'itr_kb_article' ) ||
+			$query->is_tax( 'itr_kb_category' ) ||
+			$query->is_tax( 'itr_kb_tag' )
+		) {
+			$per_page = absint( get_option( 'itr_kb_articles_per_page', 10 ) );
+			$query->set( 'posts_per_page', $per_page ?: 10 );
+		}
+	}
+
+	/**
 	 * Load Google Fonts if heading or body font is set.
 	 *
 	 * @return void

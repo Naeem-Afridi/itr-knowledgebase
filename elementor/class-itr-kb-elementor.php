@@ -64,6 +64,7 @@ class ITR_KB_Elementor {
 			'ITR_KB_Widget_Author_Box',
 			'ITR_KB_Widget_Content_Sections',
 			'ITR_KB_Widget_Category_Accordion',
+			'ITR_KB_Widget_Banner',
 		);
 
 		foreach ( $widgets as $widget_class ) {
@@ -91,6 +92,7 @@ class ITR_KB_Elementor {
 			'class-itr-kb-widget-author-box.php',
 			'class-itr-kb-widget-content-sections.php',
 			'class-itr-kb-widget-category-accordion.php',
+			'class-itr-kb-widget-banner.php',
 		);
 
 		foreach ( $widget_files as $file ) {

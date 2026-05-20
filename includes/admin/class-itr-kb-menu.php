@@ -518,11 +518,17 @@ class ITR_KB_Menu {
 					$settings->render_styling_page();
 					?>
 				<?php else : ?>
-					<form method="post" action="options.php">
+					<?php
+					$settings = new \ITR_Knowledgebase\Admin\ITR_KB_Settings();
+					$settings->maybe_handle_tab_save( $active_tab );
+					settings_errors( 'itr_kb_' . $active_tab );
+					?>
+					<form method="post" action="">
+						<?php wp_nonce_field( 'itr_kb_save_' . $active_tab, 'itr_kb_tab_nonce' ); ?>
+						<input type="hidden" name="itr_kb_active_tab" value="<?php echo esc_attr( $active_tab ); ?>" />
 						<?php
-						settings_fields( 'itr_kb_settings_' . $active_tab );
 						do_settings_sections( 'itr_kb_settings_' . $active_tab );
-						submit_button();
+						submit_button( __( 'Save Changes', 'itr-knowledgebase' ) );
 						?>
 					</form>
 				<?php endif; ?>

@@ -104,6 +104,120 @@ class ITR_KB_Settings {
 	public static $option_keys = array();
 
 	/**
+	 * Dispatcher — called from the settings page renderer.
+	 * Routes to the correct tab save handler when a form is submitted.
+	 *
+	 * @param string $active_tab Current tab key.
+	 * @return void
+	 */
+	public function maybe_handle_tab_save( $active_tab ) {
+		// Only act on a POST that includes our hidden tab field.
+		if (
+			! isset( $_POST['itr_kb_active_tab'] ) ||
+			sanitize_key( $_POST['itr_kb_active_tab'] ) !== $active_tab
+		) {
+			return;
+		}
+
+		switch ( $active_tab ) {
+			case 'general':
+				$this->handle_general_save();
+				break;
+			case 'search':
+				$this->handle_search_save();
+				break;
+			case 'permalink':
+				$this->handle_permalink_save();
+				break;
+		}
+	}
+
+	// =========================================================================
+	// Individual tab save handlers
+	// =========================================================================
+
+	/**
+	 * Save General tab settings.
+	 */
+	private function handle_general_save() {
+		if ( ! $this->verify_tab_nonce( 'general' ) ) return;
+
+		// Boolean fields — unchecked = not in POST = false.
+		update_option( 'itr_kb_toc_enabled',        isset( $_POST['itr_kb_toc_enabled'] )        ? '1' : '0' );
+		update_option( 'itr_kb_breadcrumb_enabled',  isset( $_POST['itr_kb_breadcrumb_enabled'] )  ? '1' : '0' );
+		update_option( 'itr_kb_print_enabled',       isset( $_POST['itr_kb_print_enabled'] )       ? '1' : '0' );
+		update_option( 'itr_kb_back_to_top_enabled', isset( $_POST['itr_kb_back_to_top_enabled'] ) ? '1' : '0' );
+
+		// Integer field.
+		$per_page = isset( $_POST['itr_kb_articles_per_page'] ) ? absint( $_POST['itr_kb_articles_per_page'] ) : 10;
+		$per_page = max( 1, min( 100, $per_page ) );
+		update_option( 'itr_kb_articles_per_page', $per_page );
+
+		add_settings_error( 'itr_kb_general', 'saved', esc_html__( 'General settings saved.', 'itr-knowledgebase' ), 'updated' );
+	}
+
+	/**
+	 * Save Search tab settings.
+	 */
+	private function handle_search_save() {
+		if ( ! $this->verify_tab_nonce( 'search' ) ) return;
+
+		update_option( 'itr_kb_search_enabled',       isset( $_POST['itr_kb_search_enabled'] )   ? '1' : '0' );
+		update_option( 'itr_kb_search_highlight',     isset( $_POST['itr_kb_search_highlight'] )  ? '1' : '0' );
+
+		$count = isset( $_POST['itr_kb_search_results_count'] ) ? absint( $_POST['itr_kb_search_results_count'] ) : 5;
+		$count = max( 1, min( 20, $count ) );
+		update_option( 'itr_kb_search_results_count', $count );
+
+		add_settings_error( 'itr_kb_search', 'saved', esc_html__( 'Search settings saved.', 'itr-knowledgebase' ), 'updated' );
+	}
+
+	/**
+	 * Save Permalink tab settings.
+	 */
+	private function handle_permalink_save() {
+		if ( ! $this->verify_tab_nonce( 'permalink' ) ) return;
+
+		$slug     = isset( $_POST['itr_kb_slug'] )          ? sanitize_title( wp_unslash( $_POST['itr_kb_slug'] ) )          : 'knowledgebase';
+		$cat_slug = isset( $_POST['itr_kb_category_slug'] ) ? sanitize_title( wp_unslash( $_POST['itr_kb_category_slug'] ) ) : 'kb-category';
+
+		update_option( 'itr_kb_slug',             $slug     ?: 'knowledgebase' );
+		update_option( 'itr_kb_category_slug',    $cat_slug ?: 'kb-category' );
+		update_option( 'itr_kb_category_in_url',  isset( $_POST['itr_kb_category_in_url'] ) ? '1' : '0' );
+
+		// Flush rewrite rules since slugs may have changed.
+		flush_rewrite_rules();
+
+		add_settings_error( 'itr_kb_permalink', 'saved', esc_html__( 'Permalink settings saved. Rewrite rules flushed.', 'itr-knowledgebase' ), 'updated' );
+	}
+
+	/**
+	 * Verify nonce for a specific tab save.
+	 *
+	 * @param string $tab Tab key.
+	 * @return bool
+	 */
+	private function verify_tab_nonce( $tab ) {
+		if (
+			! isset( $_POST['itr_kb_tab_nonce'] ) ||
+			! wp_verify_nonce(
+				sanitize_text_field( wp_unslash( $_POST['itr_kb_tab_nonce'] ) ),
+				'itr_kb_save_' . $tab
+			)
+		) {
+			add_settings_error( 'itr_kb_' . $tab, 'nonce_failed', esc_html__( 'Security check failed. Please try again.', 'itr-knowledgebase' ), 'error' );
+			return false;
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			add_settings_error( 'itr_kb_' . $tab, 'no_permission', esc_html__( 'You do not have permission to save settings.', 'itr-knowledgebase' ), 'error' );
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Register all settings.
 	 *
 	 * @return void
@@ -150,7 +264,7 @@ class ITR_KB_Settings {
 
 		add_settings_field( 'itr_kb_articles_per_page', esc_html__( 'Articles Per Page', 'itr-knowledgebase' ),
 			array( $this, 'render_number' ), $page, $section,
-			array( 'name' => 'itr_kb_articles_per_page', 'min' => 1, 'max' => 100,
+			array( 'name' => 'itr_kb_articles_per_page', 'min' => 1, 'max' => 100, 'default' => 10,
 				'desc' => esc_html__( 'Number of articles shown per page on category/archive pages.', 'itr-knowledgebase' ) ) );
 	}
 
@@ -214,7 +328,7 @@ class ITR_KB_Settings {
 
 		add_settings_field( 'itr_kb_search_results_count', esc_html__( 'Live Results Count', 'itr-knowledgebase' ),
 			array( $this, 'render_number' ), $page, $section,
-			array( 'name' => 'itr_kb_search_results_count', 'min' => 1, 'max' => 20,
+			array( 'name' => 'itr_kb_search_results_count', 'min' => 1, 'max' => 20, 'default' => 5,
 				'desc' => esc_html__( 'Number of results to show in live search dropdown.', 'itr-knowledgebase' ) ) );
 
 		add_settings_field( 'itr_kb_search_highlight', esc_html__( 'Highlight Terms', 'itr-knowledgebase' ),
@@ -350,7 +464,11 @@ class ITR_KB_Settings {
 	}
 
 	public function sanitize_boolean( $value ) {
-		return rest_sanitize_boolean( $value );
+		// Return '1' or '0' — both are reliably stored and read back
+		// by WordPress. Using (bool) then (int) avoids issues with
+		// rest_sanitize_boolean returning PHP true/false which
+		// WordPress stores as 1/'', causing checked() mismatches.
+		return $value ? '1' : '0';
 	}
 
 	public function sanitize_integer( $value ) {
@@ -852,12 +970,16 @@ class ITR_KB_Settings {
 	// =========================================================================
 
 	public function render_checkbox( $args ) {
-		$value = get_option( $args['name'] );
+		$value      = get_option( $args['name'] );
+		$is_checked = ( '1' === $value || 1 === $value || true === $value );
 		?>
 		<label>
-			<input type="checkbox" name="<?php echo esc_attr( $args['name'] ); ?>" value="1" <?php checked( $value, true ); ?> />
+			<input type="checkbox" name="<?php echo esc_attr( $args['name'] ); ?>" value="1" <?php checked( $is_checked ); ?> />
 			<?php echo esc_html( $args['label'] ?? '' ); ?>
 		</label>
+		<?php if ( ! empty( $args['desc'] ) ) : ?>
+			<p class="description"><?php echo esc_html( $args['desc'] ); ?></p>
+		<?php endif; ?>
 		<?php
 	}
 
@@ -878,7 +1000,16 @@ class ITR_KB_Settings {
 	}
 
 	public function render_number( $args ) {
-		$value = absint( get_option( $args['name'], $args['min'] ?? 0 ) );
+		// Use the registered default from option_keys if available,
+		// falling back to $args['default'], then $args['min'].
+		$registered_default = $args['default'] ?? ( $args['min'] ?? 0 );
+		$value = get_option( $args['name'] );
+
+		// If no value in DB yet, use the registered default.
+		if ( false === $value || '' === $value ) {
+			$value = $registered_default;
+		}
+		$value = absint( $value );
 		?>
 		<input
 			type="number"

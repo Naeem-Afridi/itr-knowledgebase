@@ -164,6 +164,9 @@ class ITR_KB_Category {
 			)
 		);
 
+		// Banner term meta — 8 keys (4 positions × image + url).
+		\ITR_Knowledgebase\Admin\ITR_KB_Term_Banner::register_term_meta();
+
 		// Author & reviewer term meta — used by the inheritance engine.
 		register_term_meta(
 			self::TAXONOMY,

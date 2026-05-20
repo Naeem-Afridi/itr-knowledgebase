@@ -460,3 +460,54 @@
 .itr-kb-clear-override:hover {
 	color: #8a2020 !important;
 }
+
+/* ==========================================================================
+   Ad Banner Fields — Category Add/Edit Screen
+   ========================================================================== */
+
+.itr-kb-banner-fields {
+	margin: 20px 0;
+	padding: 0;
+}
+
+.itr-kb-banner-fields__heading {
+	font-size: 14px;
+	font-weight: 600;
+	margin: 16px 0 4px;
+	padding-bottom: 6px;
+	border-bottom: 1px solid #ddd;
+	color: #1d2327;
+}
+
+.itr-kb-banner-pair {
+	margin-top: 8px;
+}
+
+.itr-kb-banner-pair__inner {
+	padding: 14px;
+	background: #f9f9f9;
+	border: 1px solid #e5e5e5;
+	border-radius: 4px;
+	margin-top: 6px;
+}
+
+.itr-kb-banner-pair__upload-row {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.itr-kb-banner-error {
+	font-size: 12px;
+	color: #b32d2e;
+}
+
+.itr-kb-banner-url-error {
+	font-size: 12px;
+	color: #b32d2e;
+}
+
+.itr-kb-banner-row th[colspan] {
+	padding-bottom: 0;
+}

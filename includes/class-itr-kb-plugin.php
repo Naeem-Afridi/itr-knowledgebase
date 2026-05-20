@@ -72,6 +72,9 @@ class ITR_KB_Plugin {
 		// Inheritance engine — must load before any admin or frontend class that uses it.
 		require_once ITR_KB_PATH . 'includes/class-itr-kb-inheritance.php';
 
+		// Banner engine.
+		require_once ITR_KB_PATH . 'includes/class-itr-kb-banner.php';
+
 		// Post Types.
 		require_once ITR_KB_PATH . 'includes/post-types/class-itr-kb-post-type.php';
 		require_once ITR_KB_PATH . 'includes/post-types/class-itr-kb-author-cpt.php';
@@ -86,6 +89,7 @@ class ITR_KB_Plugin {
 		require_once ITR_KB_PATH . 'includes/admin/class-itr-kb-menu.php';
 		require_once ITR_KB_PATH . 'includes/admin/class-itr-kb-meta-boxes.php';
 		require_once ITR_KB_PATH . 'includes/admin/class-itr-kb-term-author.php';
+		require_once ITR_KB_PATH . 'includes/admin/class-itr-kb-term-banner.php';
 		require_once ITR_KB_PATH . 'includes/admin/class-itr-kb-category-order.php';
 		require_once ITR_KB_PATH . 'includes/admin/class-itr-kb-bulk-actions.php';
 		require_once ITR_KB_PATH . 'includes/admin/class-itr-kb-import.php';
@@ -191,9 +195,19 @@ class ITR_KB_Plugin {
 		$this->loader->add_action( 'admin_init', $settings, 'register_settings' );
 		$this->loader->add_action( 'admin_init', $roles, 'register_roles' );
 
-		// Term author/reviewer fields on category screens (runs on both admin and non-admin
-		// since taxonomy hooks fire on init, but the class guards the nonce on save).
+		// Term author/reviewer fields on category screens.
 		$term_author->register_hooks();
+
+		// Category deletion — re-apply inheritance when a category is deleted.
+		$this->loader->add_action( 'pre_delete_term',        '\ITR_Knowledgebase\Includes\ITR_KB_Inheritance', 'on_category_pre_delete', 10, 2 );
+		$this->loader->add_action( 'delete_itr_kb_category', '\ITR_Knowledgebase\Includes\ITR_KB_Inheritance', 'on_category_deleted',    10, 1 );
+
+		// Term banner fields on category screens.
+		$term_banner = new \ITR_Knowledgebase\Admin\ITR_KB_Term_Banner();
+		$term_banner->register_hooks();
+
+		// Register banner shortcode.
+		\ITR_Knowledgebase\Includes\ITR_KB_Banner::register_shortcode();
 	}
 
 	/**
@@ -211,6 +225,7 @@ class ITR_KB_Plugin {
 
 		$this->loader->add_action( 'wp_enqueue_scripts', $frontend, 'enqueue_styles' );
 		$this->loader->add_action( 'wp_enqueue_scripts', $frontend, 'enqueue_scripts' );
+		$this->loader->add_action( 'pre_get_posts',      $frontend, 'set_articles_per_page' );
 		$this->loader->add_filter( 'template_include', $frontend, 'load_templates' );
 		$this->loader->add_filter( 'the_content', $toc, 'inject_toc' );
 		$this->loader->add_filter( 'the_content', $navigation, 'inject_navigation' );

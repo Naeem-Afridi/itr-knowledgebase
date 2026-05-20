@@ -274,6 +274,123 @@ class ITR_KB_Inheritance {
 	}
 
 	/**
+	 * Temporary store for article IDs collected in pre_delete_term.
+	 * Keyed by term_id so concurrent deletions don't collide.
+	 *
+	 * @var array
+	 */
+	private static $pending_reapply = array();
+
+	/**
+	 * Fired by pre_delete_term for itr_kb_category BEFORE the term is deleted.
+	 *
+	 * At this point term relationships still exist so we can query
+	 * get_objects_in_term() to get all affected article IDs.
+	 * We also reset the inheritance status for any article whose
+	 * source_term matches the term being deleted, so the re-apply
+	 * step that follows can resolve fresh values.
+	 *
+	 * @param int    $term_id  Term ID being deleted.
+	 * @param string $taxonomy Taxonomy name.
+	 * @return void
+	 */
+	public static function on_category_pre_delete( $term_id, $taxonomy ) {
+		if ( 'itr_kb_category' !== $taxonomy ) {
+			return;
+		}
+
+		$term_id = (int) $term_id;
+
+		// Get the term object to check if it has a parent.
+		$term   = get_term( $term_id, 'itr_kb_category' );
+		$parent = ( $term && ! is_wp_error( $term ) ) ? (int) $term->parent : 0;
+
+		// Collect all article IDs assigned to this term.
+		$object_ids = get_objects_in_term( $term_id, 'itr_kb_category' );
+		if ( is_wp_error( $object_ids ) || empty( $object_ids ) ) {
+			self::$pending_reapply[ $term_id ] = array();
+			return;
+		}
+
+		$affected = array();
+
+		foreach ( $object_ids as $post_id ) {
+			$post_id = (int) $post_id;
+
+			if ( get_post_type( $post_id ) !== 'itr_kb_article' ) {
+				continue;
+			}
+
+			// ── Reassign to parent if article has ONLY this one category ────
+			// We do this ourselves rather than relying on WordPress's built-in
+			// reassignment which is unreliable for custom taxonomies.
+			if ( $parent > 0 ) {
+				$all_terms = wp_get_object_terms( $post_id, 'itr_kb_category', array( 'fields' => 'ids' ) );
+				if ( ! is_wp_error( $all_terms ) && array( $term_id ) === array_map( 'intval', $all_terms ) ) {
+					// Article has only this child term — assign parent before deletion.
+					wp_set_object_terms( $post_id, $parent, 'itr_kb_category' );
+				}
+			}
+
+			// ── Reset inheritance status if sourced from this term ──────────
+			$reset_author   = false;
+			$reset_reviewer = false;
+
+			$author_source = (int) get_post_meta( $post_id, '_itr_kb_author_source_term', true );
+			if ( $author_source === $term_id ) {
+				delete_post_meta( $post_id, '_itr_kb_author_status' );
+				delete_post_meta( $post_id, '_itr_kb_author_source_term' );
+				$reset_author = true;
+			}
+
+			$reviewer_source = (int) get_post_meta( $post_id, '_itr_kb_reviewer_source_term', true );
+			if ( $reviewer_source === $term_id ) {
+				delete_post_meta( $post_id, '_itr_kb_reviewer_status' );
+				delete_post_meta( $post_id, '_itr_kb_reviewer_source_term' );
+				$reset_reviewer = true;
+			}
+
+			if ( $reset_author || $reset_reviewer ) {
+				$affected[] = $post_id;
+			}
+		}
+
+		self::$pending_reapply[ $term_id ] = $affected;
+	}
+
+	/**
+	 * Fired by delete_itr_kb_category AFTER the term is deleted.
+	 *
+	 * Re-applies inheritance for all articles collected in pre_delete.
+	 * The deleted term no longer exists so the engine will automatically
+	 * fall back to a parent category or return empty if none found.
+	 *
+	 * Processes in batches of 50 to stay performant on large sites.
+	 *
+	 * @param int $term_id Term ID that was deleted.
+	 * @return void
+	 */
+	public static function on_category_deleted( $term_id ) {
+		$term_id  = (int) $term_id;
+		$affected = self::$pending_reapply[ $term_id ] ?? array();
+
+		if ( empty( $affected ) ) {
+			unset( self::$pending_reapply[ $term_id ] );
+			return;
+		}
+
+		// Process in batches.
+		$batches = array_chunk( $affected, 50 );
+		foreach ( $batches as $batch ) {
+			foreach ( $batch as $post_id ) {
+				self::apply( (int) $post_id );
+			}
+		}
+
+		unset( self::$pending_reapply[ $term_id ] );
+	}
+
+	/**
 	 * Build the human-readable badge text for a given status + source name.
 	 *
 	 * @param string $status      'manual' | 'inherited' | 'empty'.
