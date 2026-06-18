@@ -53,9 +53,22 @@ class ITR_KB_Frontend {
 	 * @return void
 	 */
 	public function enqueue_styles() {
-		if ( ! ITR_KB_Utils::is_kb_page() ) {
-			return;
-		}
+		// Always load in Elementor editor preview so widget styles render correctly.
+		// $is_elementor_preview = defined( 'ELEMENTOR_VERSION' ) &&
+		// 	isset( \Elementor\Plugin::$instance->preview ) &&
+		// 	\Elementor\Plugin::$instance->preview->is_preview_mode();
+
+		// if ( ! $is_elementor_preview && ! ITR_KB_Utils::is_kb_page() ) {
+		// 	return;
+		// }
+
+		    $is_elementor_preview = defined( 'ELEMENTOR_VERSION' ) &&
+        isset( \Elementor\Plugin::$instance->preview ) &&
+        \Elementor\Plugin::$instance->preview->is_preview_mode();
+
+    if ( ! $is_elementor_preview && ! ITR_KB_Utils::is_kb_page() && ! $this->page_has_kb_widget() ) {
+        return;
+    }
 
 		// Load Google Fonts if set.
 		$this->maybe_load_google_fonts();
@@ -74,6 +87,63 @@ class ITR_KB_Frontend {
 		// Inject dynamic CSS from settings.
 		$this->inject_dynamic_css();
 	}
+
+
+
+	/**
+	 * Check if the current singular page has one of our KB Elementor widgets
+	 * placed on it, even though the page itself isn't a KB post type/archive.
+	 *
+	 * @return bool
+	 */
+	private function page_has_kb_widget() {
+	if ( is_singular() ) {
+		$data = get_post_meta( get_the_ID(), '_elementor_data', true );
+		if ( $data && false !== strpos( $data, 'itr-kb-' ) ) {
+			return true;
+		}
+	}
+
+	// The current page's own content has no KB widget — but a header,
+	// footer, or popup template (rendered separately from the page's
+	// own _elementor_data) might. Those need to be checked independently
+	// or off-canvas/popup widgets silently lose their CSS/JS on any page
+	// that doesn't happen to have its own KB widget.
+	return $this->global_template_has_kb_widget();
+}
+
+private function global_template_has_kb_widget() {
+	static $cached = null;
+	if ( null !== $cached ) {
+		return $cached;
+	}
+
+	$cached = false;
+
+	$templates = get_posts( array(
+		'post_type'      => 'elementor_library',
+		'post_status'    => 'publish',
+		'posts_per_page' => -1,
+		'fields'         => 'ids',
+		'meta_query'     => array(
+			array(
+				'key'     => '_elementor_template_type',
+				'value'   => array( 'header', 'footer', 'popup' ),
+				'compare' => 'IN',
+			),
+		),
+	) );
+
+	foreach ( $templates as $template_id ) {
+		$data = get_post_meta( $template_id, '_elementor_data', true );
+		if ( $data && false !== strpos( $data, 'itr-kb-' ) ) {
+			$cached = true;
+			break;
+		}
+	}
+
+	return $cached;
+}
 
 	/**
 	 * Set articles per page on KB archive/taxonomy pages using the plugin setting.
@@ -130,7 +200,11 @@ class ITR_KB_Frontend {
 	 * @return void
 	 */
 	public function enqueue_scripts() {
-		if ( ! ITR_KB_Utils::is_kb_page() ) {
+		$is_elementor_preview = defined( 'ELEMENTOR_VERSION' ) &&
+			isset( \Elementor\Plugin::$instance->preview ) &&
+			\Elementor\Plugin::$instance->preview->is_preview_mode();
+
+		if ( ! $is_elementor_preview && ! ITR_KB_Utils::is_kb_page() && ! $this->page_has_kb_widget() ) {
 			return;
 		}
 
@@ -176,10 +250,8 @@ class ITR_KB_Frontend {
 	 * @return string
 	 */
 	public function load_templates( $template ) {
+
 		if ( is_singular( 'itr_kb_article' ) ) {
-			if ( $this->is_elementor_controlled( 'single' ) ) {
-				return $template;
-			}
 			$plugin_template = ITR_KB_Utils::get_template_path( 'single-itr-kb.php' );
 			if ( file_exists( $plugin_template ) ) {
 				return $plugin_template;
@@ -187,9 +259,6 @@ class ITR_KB_Frontend {
 		}
 
 		if ( is_post_type_archive( 'itr_kb_article' ) || is_tax( 'itr_kb_category' ) || is_tax( 'itr_kb_tag' ) ) {
-			if ( $this->is_elementor_controlled( 'archive' ) ) {
-				return $template;
-			}
 			$plugin_template = ITR_KB_Utils::get_template_path( 'archive-itr-kb.php' );
 			if ( file_exists( $plugin_template ) ) {
 				return $plugin_template;
@@ -215,24 +284,49 @@ class ITR_KB_Frontend {
 			return false;
 		}
 
-		// Post/page was edited with Elementor editor.
+		// Post/page was edited with Elementor editor (free or Pro).
 		$post_id = get_queried_object_id();
 		if ( $post_id && 'builder' === get_post_meta( $post_id, '_elementor_edit_mode', true ) ) {
 			return true;
 		}
 
-		// Elementor Pro Theme Builder has a template for this location.
-		if ( class_exists( '\ElementorPro\Modules\ThemeBuilder\Module' ) ) {
-			try {
-				$locations_manager = \ElementorPro\Modules\ThemeBuilder\Module::instance()->get_locations_manager();
-				if ( $locations_manager && method_exists( $locations_manager, 'get_document_for_location' ) ) {
-					if ( $locations_manager->get_document_for_location( $location ) ) {
+		// Elementor Pro Theme Builder — try multiple API approaches for compatibility.
+		if ( ! class_exists( '\ElementorPro\Modules\ThemeBuilder\Module' ) ) {
+			return false;
+		}
+
+		try {
+			$module = \ElementorPro\Modules\ThemeBuilder\Module::instance();
+
+			// Approach 1: conditions_manager->get_documents_for_location (most reliable).
+			if ( method_exists( $module, 'get_conditions_manager' ) ) {
+				$cm = $module->get_conditions_manager();
+				if ( $cm && method_exists( $cm, 'get_documents_for_location' ) ) {
+					$docs = $cm->get_documents_for_location( $location );
+					if ( ! empty( $docs ) ) {
 						return true;
 					}
 				}
-			} catch ( \Throwable $e ) {
-				// Theme Builder API unavailable — fall through to plugin template.
 			}
+
+			// Approach 2: locations_manager methods (older Elementor Pro versions).
+			if ( method_exists( $module, 'get_locations_manager' ) ) {
+				$lm = $module->get_locations_manager();
+				if ( $lm ) {
+					if ( method_exists( $lm, 'get_location_templates' ) ) {
+						if ( ! empty( $lm->get_location_templates( $location ) ) ) {
+							return true;
+						}
+					}
+					if ( method_exists( $lm, 'get_document_for_location' ) ) {
+						if ( $lm->get_document_for_location( $location ) ) {
+							return true;
+						}
+					}
+				}
+			}
+		} catch ( \Throwable $e ) {
+			// Elementor Pro API unavailable — fall through to plugin template.
 		}
 
 		return false;

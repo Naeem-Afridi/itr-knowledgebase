@@ -129,43 +129,124 @@ class ITR_KB_Widget_Article_List extends Widget_Base {
 
 		$this->end_controls_section();
 
-		// Style.
-		$this->start_controls_section( 'section_style', array(
-			'label' => esc_html__( 'Style', 'itr-knowledgebase' ),
+		// ── Article List: Item ───────────────────────────────────────────────
+		$this->start_controls_section( 'section_style_item', array(
+			'label' => esc_html__( 'List Item', 'itr-knowledgebase' ),
 			'tab'   => Controls_Manager::TAB_STYLE,
-		));
+		) );
 
-		$this->add_control( 'title_color', array(
-			'label'     => esc_html__( 'Title Color', 'itr-knowledgebase' ),
+		$this->add_control( 'item_bg', array(
+			'label'     => esc_html__( 'Background', 'itr-knowledgebase' ),
 			'type'      => Controls_Manager::COLOR,
-			'selectors' => array(
-				'{{WRAPPER}} .itr-kb-section__link' => 'color: {{VALUE}};',
-			),
-		));
+			'selectors' => array( '{{WRAPPER}} .itr-kb-section__item' => 'background-color: {{VALUE}};' ),
+		) );
 
-		$this->add_group_control( \Elementor\Group_Control_Typography::get_type(), array(
-			'name'     => 'title_typography',
-			'label'    => esc_html__( 'Title Typography', 'itr-knowledgebase' ),
-			'selector' => '{{WRAPPER}} .itr-kb-section__article-title',
-		));
+		$this->add_group_control( \Elementor\Group_Control_Border::get_type(), array(
+			'name'     => 'item_border',
+			'selector' => '{{WRAPPER}} .itr-kb-section__item',
+		) );
 
-		$this->add_control( 'meta_color', array(
-			'label'     => esc_html__( 'Meta Color', 'itr-knowledgebase' ),
-			'type'      => Controls_Manager::COLOR,
-			'selectors' => array(
-				'{{WRAPPER}} .itr-kb-section__date, {{WRAPPER}} .itr-kb-section__category' => 'color: {{VALUE}};',
-			),
-		));
+		$this->add_responsive_control( 'item_radius', array(
+			'label'      => esc_html__( 'Border Radius', 'itr-knowledgebase' ),
+			'type'       => Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', '%' ),
+			'selectors'  => array( '{{WRAPPER}} .itr-kb-section__item' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};' ),
+		) );
+
+		$this->add_responsive_control( 'item_padding', array(
+			'label'      => esc_html__( 'Padding', 'itr-knowledgebase' ),
+			'type'       => Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em' ),
+			'selectors'  => array( '{{WRAPPER}} .itr-kb-section__item' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};' ),
+		) );
 
 		$this->add_responsive_control( 'item_spacing', array(
-			'label'      => esc_html__( 'Item Spacing', 'itr-knowledgebase' ),
+			'label'      => esc_html__( 'Spacing Between Items', 'itr-knowledgebase' ),
 			'type'       => Controls_Manager::SLIDER,
 			'size_units' => array( 'px' ),
 			'range'      => array( 'px' => array( 'min' => 0, 'max' => 60 ) ),
-			'selectors'  => array(
-				'{{WRAPPER}} .itr-kb-section__item' => 'margin-bottom: {{SIZE}}{{UNIT}};',
-			),
-		));
+			'selectors'  => array( '{{WRAPPER}} .itr-kb-section__item' => 'margin-bottom: {{SIZE}}{{UNIT}};' ),
+		) );
+
+		$this->add_group_control( \Elementor\Group_Control_Box_Shadow::get_type(), array(
+			'name'     => 'item_shadow',
+			'selector' => '{{WRAPPER}} .itr-kb-section__item',
+		) );
+
+		$this->end_controls_section();
+
+		// ── Article List: Title ───────────────────────────────────────────────
+		$this->start_controls_section( 'section_style_title', array(
+			'label' => esc_html__( 'Title', 'itr-knowledgebase' ),
+			'tab'   => Controls_Manager::TAB_STYLE,
+		) );
+
+		$this->add_group_control( \Elementor\Group_Control_Typography::get_type(), array(
+			'name'     => 'title_typography',
+			'selector' => '{{WRAPPER}} .itr-kb-section__article-title',
+		) );
+
+		$this->start_controls_tabs( 'tabs_title_color' );
+		$this->start_controls_tab( 'tab_title_normal', array( 'label' => esc_html__( 'Normal', 'itr-knowledgebase' ) ) );
+		$this->add_control( 'title_color', array(
+			'label'     => esc_html__( 'Color', 'itr-knowledgebase' ),
+			'type'      => Controls_Manager::COLOR,
+			'selectors' => array( '{{WRAPPER}} .itr-kb-section__link' => 'color: {{VALUE}};' ),
+		) );
+		$this->end_controls_tab();
+		$this->start_controls_tab( 'tab_title_hover', array( 'label' => esc_html__( 'Hover', 'itr-knowledgebase' ) ) );
+		$this->add_control( 'title_hover_color', array(
+			'label'     => esc_html__( 'Color', 'itr-knowledgebase' ),
+			'type'      => Controls_Manager::COLOR,
+			'selectors' => array( '{{WRAPPER}} .itr-kb-section__link:hover' => 'color: {{VALUE}};' ),
+		) );
+		$this->end_controls_tab();
+		$this->end_controls_tabs();
+
+		$this->end_controls_section();
+
+		// ── Article List: Excerpt ─────────────────────────────────────────────
+		$this->start_controls_section( 'section_style_excerpt', array(
+			'label'     => esc_html__( 'Excerpt', 'itr-knowledgebase' ),
+			'tab'       => Controls_Manager::TAB_STYLE,
+			'condition' => array( 'show_excerpt' => 'yes' ),
+		) );
+
+		$this->add_group_control( \Elementor\Group_Control_Typography::get_type(), array(
+			'name'     => 'excerpt_typography',
+			'selector' => '{{WRAPPER}} .itr-kb-section__excerpt',
+		) );
+
+		$this->add_control( 'excerpt_color', array(
+			'label'     => esc_html__( 'Color', 'itr-knowledgebase' ),
+			'type'      => Controls_Manager::COLOR,
+			'selectors' => array( '{{WRAPPER}} .itr-kb-section__excerpt' => 'color: {{VALUE}};' ),
+		) );
+
+		$this->end_controls_section();
+
+		// ── Article List: Meta ────────────────────────────────────────────────
+		$this->start_controls_section( 'section_style_meta', array(
+			'label' => esc_html__( 'Meta (Date / Category)', 'itr-knowledgebase' ),
+			'tab'   => Controls_Manager::TAB_STYLE,
+		) );
+
+		$this->add_group_control( \Elementor\Group_Control_Typography::get_type(), array(
+			'name'     => 'meta_typography',
+			'selector' => '{{WRAPPER}} .itr-kb-section__date, {{WRAPPER}} .itr-kb-section__category',
+		) );
+
+		$this->add_control( 'meta_color', array(
+			'label'     => esc_html__( 'Color', 'itr-knowledgebase' ),
+			'type'      => Controls_Manager::COLOR,
+			'selectors' => array( '{{WRAPPER}} .itr-kb-section__date, {{WRAPPER}} .itr-kb-section__category' => 'color: {{VALUE}};' ),
+		) );
+
+		$this->add_control( 'meta_hover_color', array(
+			'label'     => esc_html__( 'Category Link Hover', 'itr-knowledgebase' ),
+			'type'      => Controls_Manager::COLOR,
+			'selectors' => array( '{{WRAPPER}} .itr-kb-section__category:hover' => 'color: {{VALUE}};' ),
+		) );
 
 		$this->end_controls_section();
 	}

@@ -62,8 +62,42 @@ class ITR_KB_Widget_Breadcrumb extends Widget_Base {
 
 		$this->end_controls_section();
 
-		$this->start_controls_section( 'section_style', array(
-			'label' => esc_html__( 'Style', 'itr-knowledgebase' ),
+		// ── Breadcrumb: Container ────────────────────────────────────────────
+		$this->start_controls_section( 'section_style_bc_container', array(
+			'label' => esc_html__( 'Container', 'itr-knowledgebase' ),
+			'tab'   => Controls_Manager::TAB_STYLE,
+		) );
+
+		$this->add_control( 'bc_bg', array(
+			'label'     => esc_html__( 'Background', 'itr-knowledgebase' ),
+			'type'      => Controls_Manager::COLOR,
+			'selectors' => array( '{{WRAPPER}} .itr-kb-single-breadcrumb' => 'background-color: {{VALUE}};' ),
+		) );
+
+		$this->add_responsive_control( 'bc_padding', array(
+			'label'      => esc_html__( 'Padding', 'itr-knowledgebase' ),
+			'type'       => Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em' ),
+			'selectors'  => array( '{{WRAPPER}} .itr-kb-single-breadcrumb' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};' ),
+		) );
+
+		$this->add_responsive_control( 'bc_radius', array(
+			'label'      => esc_html__( 'Border Radius', 'itr-knowledgebase' ),
+			'type'       => Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', '%' ),
+			'selectors'  => array( '{{WRAPPER}} .itr-kb-single-breadcrumb' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};' ),
+		) );
+
+		$this->add_group_control( \Elementor\Group_Control_Border::get_type(), array(
+			'name'     => 'bc_border',
+			'selector' => '{{WRAPPER}} .itr-kb-single-breadcrumb',
+		) );
+
+		$this->end_controls_section();
+
+		// ── Breadcrumb: Typography ────────────────────────────────────────────
+		$this->start_controls_section( 'section_style_bc_typography', array(
+			'label' => esc_html__( 'Typography & Colors', 'itr-knowledgebase' ),
 			'tab'   => Controls_Manager::TAB_STYLE,
 		) );
 
@@ -72,14 +106,31 @@ class ITR_KB_Widget_Breadcrumb extends Widget_Base {
 			'selector' => '{{WRAPPER}} .itr-kb-single-breadcrumb',
 		) );
 
+		$this->start_controls_tabs( 'tabs_bc_links' );
+
+		$this->start_controls_tab( 'tab_bc_normal', array( 'label' => esc_html__( 'Normal', 'itr-knowledgebase' ) ) );
 		$this->add_control( 'link_color', array(
 			'label'     => esc_html__( 'Link Color', 'itr-knowledgebase' ),
 			'type'      => Controls_Manager::COLOR,
 			'selectors' => array(
-				'{{WRAPPER}} .itr-kb-single-breadcrumb__trail a'   => 'color: {{VALUE}} !important;',
-				'{{WRAPPER}} .itr-kb-single-breadcrumb__all'       => 'color: {{VALUE}} !important;',
+				'{{WRAPPER}} .itr-kb-single-breadcrumb__trail a' => 'color: {{VALUE}};',
+				'{{WRAPPER}} .itr-kb-single-breadcrumb__all'     => 'color: {{VALUE}};',
 			),
 		) );
+		$this->end_controls_tab();
+
+		$this->start_controls_tab( 'tab_bc_hover', array( 'label' => esc_html__( 'Hover', 'itr-knowledgebase' ) ) );
+		$this->add_control( 'link_hover_color', array(
+			'label'     => esc_html__( 'Link Hover Color', 'itr-knowledgebase' ),
+			'type'      => Controls_Manager::COLOR,
+			'selectors' => array(
+				'{{WRAPPER}} .itr-kb-single-breadcrumb__trail a:hover' => 'color: {{VALUE}};',
+				'{{WRAPPER}} .itr-kb-single-breadcrumb__all:hover'     => 'color: {{VALUE}};',
+			),
+		) );
+		$this->end_controls_tab();
+
+		$this->end_controls_tabs();
 
 		$this->add_control( 'current_color', array(
 			'label'     => esc_html__( 'Current Page Color', 'itr-knowledgebase' ),
@@ -102,9 +153,7 @@ class ITR_KB_Widget_Breadcrumb extends Widget_Base {
 			'type'       => Controls_Manager::SLIDER,
 			'size_units' => array( 'px' ),
 			'range'      => array( 'px' => array( 'min' => 0, 'max' => 32 ) ),
-			'selectors'  => array(
-				'{{WRAPPER}} .itr-kb-single-breadcrumb__trail' => 'gap: {{SIZE}}{{UNIT}};',
-			),
+			'selectors'  => array( '{{WRAPPER}} .itr-kb-single-breadcrumb__trail' => 'gap: {{SIZE}}{{UNIT}};' ),
 		) );
 
 		$this->end_controls_section();

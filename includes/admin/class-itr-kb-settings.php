@@ -148,6 +148,10 @@ class ITR_KB_Settings {
 		update_option( 'itr_kb_print_enabled',       isset( $_POST['itr_kb_print_enabled'] )       ? '1' : '0' );
 		update_option( 'itr_kb_back_to_top_enabled', isset( $_POST['itr_kb_back_to_top_enabled'] ) ? '1' : '0' );
 
+		$allowed_layouts = array( 'classic', 'modern' );
+		$layout = isset( $_POST['itr_kb_article_layout'] ) ? sanitize_key( $_POST['itr_kb_article_layout'] ) : 'classic';
+		update_option( 'itr_kb_article_layout', in_array( $layout, $allowed_layouts, true ) ? $layout : 'classic' );
+
 		// Integer field.
 		$per_page = isset( $_POST['itr_kb_articles_per_page'] ) ? absint( $_POST['itr_kb_articles_per_page'] ) : 10;
 		$per_page = max( 1, min( 100, $per_page ) );
@@ -243,6 +247,7 @@ class ITR_KB_Settings {
 		$this->register_option( $group, 'itr_kb_print_enabled',          'boolean', true );
 		$this->register_option( $group, 'itr_kb_back_to_top_enabled',    'boolean', true );
 		$this->register_option( $group, 'itr_kb_articles_per_page',      'integer', 10 );
+		$this->register_option( $group, 'itr_kb_article_layout',         'text',    'classic' );
 
 		add_settings_section( $section, '', '__return_false', $page );
 
@@ -266,6 +271,18 @@ class ITR_KB_Settings {
 			array( $this, 'render_number' ), $page, $section,
 			array( 'name' => 'itr_kb_articles_per_page', 'min' => 1, 'max' => 100, 'default' => 10,
 				'desc' => esc_html__( 'Number of articles shown per page on category/archive pages.', 'itr-knowledgebase' ) ) );
+
+		add_settings_field( 'itr_kb_article_layout', esc_html__( 'Article Page Layout', 'itr-knowledgebase' ),
+			array( $this, 'render_radio' ), $page, $section,
+			array(
+				'name'    => 'itr_kb_article_layout',
+				'default' => 'classic',
+				'options' => array(
+					'classic' => esc_html__( 'Classic — TOC | Article | Category sidebar', 'itr-knowledgebase' ),
+					'modern'  => esc_html__( 'Modern — TOC | Article | Ad banners column (no category sidebar)', 'itr-knowledgebase' ),
+				),
+				'desc' => esc_html__( 'Elementor Theme Builder templates override this setting automatically.', 'itr-knowledgebase' ),
+			) );
 	}
 
 	// =========================================================================
@@ -968,6 +985,20 @@ class ITR_KB_Settings {
 	// =========================================================================
 	// Standard WP Settings API field renderers (for non-styling tabs)
 	// =========================================================================
+
+	public function render_radio( $args ) {
+		$current = get_option( $args['name'], $args['default'] ?? '' );
+		foreach ( $args['options'] as $value => $label ) {
+			$id = 'itr_kb_radio_' . $args['name'] . '_' . $value;
+			echo '<label for="' . esc_attr( $id ) . '" style="display:block;margin-bottom:6px;">';
+			echo '<input type="radio" id="' . esc_attr( $id ) . '" name="' . esc_attr( $args['name'] ) . '" value="' . esc_attr( $value ) . '" ' . checked( $current, $value, false ) . '> ';
+			echo esc_html( $label );
+			echo '</label>';
+		}
+		if ( ! empty( $args['desc'] ) ) {
+			echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
+		}
+	}
 
 	public function render_checkbox( $args ) {
 		$value      = get_option( $args['name'] );

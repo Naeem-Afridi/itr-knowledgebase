@@ -74,6 +74,7 @@ class ITR_KB_Plugin {
 
 		// Banner engine.
 		require_once ITR_KB_PATH . 'includes/class-itr-kb-banner.php';
+		require_once ITR_KB_PATH . 'includes/class-itr-kb-shortcodes.php';
 
 		// Post Types.
 		require_once ITR_KB_PATH . 'includes/post-types/class-itr-kb-post-type.php';
@@ -90,6 +91,7 @@ class ITR_KB_Plugin {
 		require_once ITR_KB_PATH . 'includes/admin/class-itr-kb-meta-boxes.php';
 		require_once ITR_KB_PATH . 'includes/admin/class-itr-kb-term-author.php';
 		require_once ITR_KB_PATH . 'includes/admin/class-itr-kb-term-banner.php';
+		require_once ITR_KB_PATH . 'includes/admin/class-itr-kb-term-icon.php';
 		require_once ITR_KB_PATH . 'includes/admin/class-itr-kb-category-order.php';
 		require_once ITR_KB_PATH . 'includes/admin/class-itr-kb-bulk-actions.php';
 		require_once ITR_KB_PATH . 'includes/admin/class-itr-kb-import.php';
@@ -206,8 +208,12 @@ class ITR_KB_Plugin {
 		$term_banner = new \ITR_Knowledgebase\Admin\ITR_KB_Term_Banner();
 		$term_banner->register_hooks();
 
+		$term_icon = new \ITR_Knowledgebase\Admin\ITR_KB_Term_Icon();
+		$term_icon->register_hooks();
+
 		// Register banner shortcode.
-		\ITR_Knowledgebase\Includes\ITR_KB_Banner::register_shortcode();
+		// NOTE: moved to define_frontend_hooks so it runs on frontend too.
+
 	}
 
 	/**
@@ -223,10 +229,15 @@ class ITR_KB_Plugin {
 		$search     = new \ITR_Knowledgebase\Frontend\ITR_KB_Search();
 		$sections   = new \ITR_Knowledgebase\Frontend\ITR_KB_Sections();
 
+		// Register shortcodes here (not in admin hooks) so they work on the frontend too.
+		\ITR_Knowledgebase\Includes\ITR_KB_Banner::register_shortcode();
+		\ITR_Knowledgebase\Includes\ITR_KB_Shortcodes::register();
+
 		$this->loader->add_action( 'wp_enqueue_scripts', $frontend, 'enqueue_styles' );
 		$this->loader->add_action( 'wp_enqueue_scripts', $frontend, 'enqueue_scripts' );
+		$this->loader->add_action( 'elementor/preview/enqueue_styles', $frontend, 'enqueue_styles' );
 		$this->loader->add_action( 'pre_get_posts',      $frontend, 'set_articles_per_page' );
-		$this->loader->add_filter( 'template_include', $frontend, 'load_templates' );
+		$this->loader->add_filter( 'template_include', $frontend, 'load_templates', 999 );
 		$this->loader->add_filter( 'the_content', $toc, 'inject_toc' );
 		$this->loader->add_filter( 'the_content', $navigation, 'inject_navigation' );
 		$this->loader->add_action( 'wp_ajax_itr_kb_search', $search, 'handle_search' );

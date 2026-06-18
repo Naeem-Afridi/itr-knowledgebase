@@ -71,39 +71,147 @@ class ITR_KB_Widget_Article_Accordion extends Widget_Base {
 		$this->end_controls_section();
 
 		// Style.
-		$this->start_controls_section( 'section_style', array(
-			'label' => esc_html__( 'Style', 'itr-knowledgebase' ),
+		// ── Accordion: Section Item ───────────────────────────────────────────
+		$this->start_controls_section( 'section_style_acc_item', array(
+			'label' => esc_html__( 'Section Item', 'itr-knowledgebase' ),
 			'tab'   => Controls_Manager::TAB_STYLE,
-		));
-
-		$this->add_control( 'header_bg', array(
-			'label'     => esc_html__( 'Header Background', 'itr-knowledgebase' ),
-			'type'      => Controls_Manager::COLOR,
-			'selectors' => array(
-				'{{WRAPPER}} .itr-kb-accordion__header' => 'background-color: {{VALUE}};',
-			),
-		));
-
-		$this->add_control( 'header_color', array(
-			'label'     => esc_html__( 'Header Text Color', 'itr-knowledgebase' ),
-			'type'      => Controls_Manager::COLOR,
-			'selectors' => array(
-				'{{WRAPPER}} .itr-kb-accordion__header' => 'color: {{VALUE}};',
-			),
-		));
-
-		$this->add_control( 'link_color', array(
-			'label'     => esc_html__( 'Article Link Color', 'itr-knowledgebase' ),
-			'type'      => Controls_Manager::COLOR,
-			'selectors' => array(
-				'{{WRAPPER}} .itr-kb-accordion__article-link' => 'color: {{VALUE}};',
-			),
-		));
+		) );
 
 		$this->add_group_control( \Elementor\Group_Control_Border::get_type(), array(
 			'name'     => 'section_border',
 			'selector' => '{{WRAPPER}} .itr-kb-accordion__section',
-		));
+		) );
+
+		$this->add_responsive_control( 'section_radius', array(
+			'label'      => esc_html__( 'Border Radius', 'itr-knowledgebase' ),
+			'type'       => Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', '%' ),
+			'selectors'  => array( '{{WRAPPER}} .itr-kb-accordion__section' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};' ),
+		) );
+
+		$this->add_responsive_control( 'section_gap', array(
+			'label'      => esc_html__( 'Gap Between Sections', 'itr-knowledgebase' ),
+			'type'       => Controls_Manager::SLIDER,
+			'size_units' => array( 'px' ),
+			'range'      => array( 'px' => array( 'min' => 0, 'max' => 40 ) ),
+			'selectors'  => array( '{{WRAPPER}} .itr-kb-accordion__section' => 'margin-bottom: {{SIZE}}{{UNIT}};' ),
+		) );
+
+		$this->add_group_control( \Elementor\Group_Control_Box_Shadow::get_type(), array(
+			'name'     => 'section_shadow',
+			'selector' => '{{WRAPPER}} .itr-kb-accordion__section',
+		) );
+
+		$this->end_controls_section();
+
+		// ── Accordion: Header ─────────────────────────────────────────────────
+		$this->start_controls_section( 'section_style_acc_header', array(
+			'label' => esc_html__( 'Header', 'itr-knowledgebase' ),
+			'tab'   => Controls_Manager::TAB_STYLE,
+		) );
+
+		$this->start_controls_tabs( 'tabs_acc_header' );
+
+		$this->start_controls_tab( 'tab_acc_header_normal', array( 'label' => esc_html__( 'Normal', 'itr-knowledgebase' ) ) );
+		$this->add_control( 'header_bg', array(
+			'label'     => esc_html__( 'Background', 'itr-knowledgebase' ),
+			'type'      => Controls_Manager::COLOR,
+			'selectors' => array( '{{WRAPPER}} .itr-kb-accordion__header' => 'background-color: {{VALUE}};' ),
+		) );
+		$this->add_control( 'header_color', array(
+			'label'     => esc_html__( 'Text Color', 'itr-knowledgebase' ),
+			'type'      => Controls_Manager::COLOR,
+			'selectors' => array( '{{WRAPPER}} .itr-kb-accordion__header' => 'color: {{VALUE}};' ),
+		) );
+		$this->end_controls_tab();
+
+		$this->start_controls_tab( 'tab_acc_header_hover', array( 'label' => esc_html__( 'Hover', 'itr-knowledgebase' ) ) );
+		$this->add_control( 'header_hover_bg', array(
+			'label'     => esc_html__( 'Background', 'itr-knowledgebase' ),
+			'type'      => Controls_Manager::COLOR,
+			'selectors' => array( '{{WRAPPER}} .itr-kb-accordion__header:hover' => 'background-color: {{VALUE}};' ),
+		) );
+		$this->add_control( 'header_hover_color', array(
+			'label'     => esc_html__( 'Text Color', 'itr-knowledgebase' ),
+			'type'      => Controls_Manager::COLOR,
+			'selectors' => array( '{{WRAPPER}} .itr-kb-accordion__header:hover' => 'color: {{VALUE}};' ),
+		) );
+		$this->end_controls_tab();
+
+		$this->end_controls_tabs();
+
+		$this->add_group_control( \Elementor\Group_Control_Typography::get_type(), array(
+			'name'     => 'header_typography',
+			'selector' => '{{WRAPPER}} .itr-kb-accordion__cat-name',
+		) );
+
+		$this->add_responsive_control( 'header_padding', array(
+			'label'      => esc_html__( 'Padding', 'itr-knowledgebase' ),
+			'type'       => Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px' ),
+			'selectors'  => array( '{{WRAPPER}} .itr-kb-accordion__header' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};' ),
+		) );
+
+		$this->add_control( 'header_toggle_color', array(
+			'label'     => esc_html__( 'Toggle Arrow Color', 'itr-knowledgebase' ),
+			'type'      => Controls_Manager::COLOR,
+			'selectors' => array( '{{WRAPPER}} .itr-kb-accordion__icon' => 'color: {{VALUE}};' ),
+		) );
+
+		$this->add_control( 'header_count_color', array(
+			'label'     => esc_html__( 'Article Count Color', 'itr-knowledgebase' ),
+			'type'      => Controls_Manager::COLOR,
+			'selectors' => array( '{{WRAPPER}} .itr-kb-accordion__cat-count' => 'color: {{VALUE}};' ),
+		) );
+
+		$this->end_controls_section();
+
+		// ── Accordion: Article List ────────────────────────────────────────────
+		$this->start_controls_section( 'section_style_acc_list', array(
+			'label' => esc_html__( 'Article List', 'itr-knowledgebase' ),
+			'tab'   => Controls_Manager::TAB_STYLE,
+		) );
+
+		$this->add_control( 'body_bg', array(
+			'label'     => esc_html__( 'Panel Background', 'itr-knowledgebase' ),
+			'type'      => Controls_Manager::COLOR,
+			'selectors' => array( '{{WRAPPER}} .itr-kb-accordion__body' => 'background-color: {{VALUE}};' ),
+		) );
+
+		$this->add_responsive_control( 'body_padding', array(
+			'label'      => esc_html__( 'Panel Padding', 'itr-knowledgebase' ),
+			'type'       => Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px' ),
+			'selectors'  => array( '{{WRAPPER}} .itr-kb-accordion__body' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};' ),
+		) );
+
+		$this->add_group_control( \Elementor\Group_Control_Typography::get_type(), array(
+			'name'     => 'link_typography',
+			'selector' => '{{WRAPPER}} .itr-kb-accordion__article-link',
+		) );
+
+		$this->start_controls_tabs( 'tabs_acc_link' );
+		$this->start_controls_tab( 'tab_acc_link_normal', array( 'label' => esc_html__( 'Normal', 'itr-knowledgebase' ) ) );
+		$this->add_control( 'link_color', array(
+			'label'     => esc_html__( 'Link Color', 'itr-knowledgebase' ),
+			'type'      => Controls_Manager::COLOR,
+			'selectors' => array( '{{WRAPPER}} .itr-kb-accordion__article-link' => 'color: {{VALUE}};' ),
+		) );
+		$this->end_controls_tab();
+		$this->start_controls_tab( 'tab_acc_link_hover', array( 'label' => esc_html__( 'Hover', 'itr-knowledgebase' ) ) );
+		$this->add_control( 'link_hover_color', array(
+			'label'     => esc_html__( 'Link Hover Color', 'itr-knowledgebase' ),
+			'type'      => Controls_Manager::COLOR,
+			'selectors' => array( '{{WRAPPER}} .itr-kb-accordion__article-link:hover' => 'color: {{VALUE}};' ),
+		) );
+		$this->end_controls_tab();
+		$this->end_controls_tabs();
+
+		$this->add_control( 'view_all_color', array(
+			'label'     => esc_html__( 'View All Color', 'itr-knowledgebase' ),
+			'type'      => Controls_Manager::COLOR,
+			'selectors' => array( '{{WRAPPER}} .itr-kb-accordion__view-all' => 'color: {{VALUE}};' ),
+		) );
 
 		$this->end_controls_section();
 	}

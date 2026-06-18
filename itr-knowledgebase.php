@@ -3,7 +3,7 @@
  * Plugin Name:       ITR Knowledgebase
  * Plugin URI:        https://itr.com/knowledgebase
  * Description:       A powerful, fully customizable Knowledge Base plugin for WordPress with Elementor support.
- * Version:           1.0.2
+ * Version:           1.0.4
  * Author:            ITR
  * Author URI:        https://itroadway.com
  * License:           GPL-2.0+
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin version.
-define( 'ITR_KB_VERSION', '1.0.2' );
+define( 'ITR_KB_VERSION', '1.0.4' );
 
 // Plugin directory path.
 define( 'ITR_KB_PATH', plugin_dir_path( __FILE__ ) );

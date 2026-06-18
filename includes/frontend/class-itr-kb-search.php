@@ -210,20 +210,59 @@ class ITR_KB_Search {
 		$has_more = $page < $query->max_num_pages;
 
 		if ( $query->have_posts() ) {
+			$current_term = $term_id ? get_term( $term_id, $taxonomy ) : null;
+			$_cat_badge   = ( $current_term && ! is_wp_error( $current_term ) ) ? $current_term->name : '';
+
 			ob_start();
 			while ( $query->have_posts() ) {
 				$query->the_post();
-				$excerpt = has_excerpt() ? esc_html( wp_trim_words( get_the_excerpt(), 20 ) ) : '';
+				$_post_id        = get_the_ID();
+				$_author_id      = get_post_meta( $_post_id, '_itr_kb_author_id', true );
+				$_reviewer_ids   = get_post_meta( $_post_id, '_itr_kb_reviewer_ids', true );
+				$_author_name    = '';
+				$_reviewer_names = array();
+
+				if ( $_author_id ) {
+					$_ap = get_post( absint( $_author_id ) );
+					if ( $_ap && 'itr_kb_author' === $_ap->post_type ) {
+						$_author_name = $_ap->post_title;
+					}
+				}
+				if ( ! empty( $_reviewer_ids ) && is_array( $_reviewer_ids ) ) {
+					foreach ( $_reviewer_ids as $_rid ) {
+						$_rp = get_post( absint( $_rid ) );
+						if ( $_rp && 'itr_kb_author' === $_rp->post_type ) {
+							$_reviewer_names[] = $_rp->post_title;
+						}
+					}
+				}
+
+				$_article_url = \ITR_Knowledgebase\Helpers\ITR_KB_Utils::get_contextual_article_url( $_post_id, $term_id );
+				$_excerpt     = wp_trim_words( get_the_excerpt(), 20 );
 				?>
-				<article class="itr-kb-article-list__item">
-					<h3 class="itr-kb-article-list__title">
-						<a href="<?php the_permalink(); ?>" class="itr-kb-article-list__link"><?php the_title(); ?></a>
-					</h3>
-					<?php if ( $excerpt ) : ?>
-						<div class="itr-kb-article-list__excerpt"><?php echo $excerpt; // phpcs:ignore WordPress.Security.EscapeOutput ?></div>
+				<article class="itr-kb-article-card">
+					<?php if ( $_cat_badge ) : ?>
+						<span class="itr-kb-article-card__badge"><?php echo esc_html( $_cat_badge ); ?></span>
 					<?php endif; ?>
-					<div class="itr-kb-article-list__meta">
-						<time class="itr-kb-article-list__date" datetime="<?php echo esc_attr( get_the_date( 'c' ) ); ?>"><?php echo esc_html( get_the_date() ); ?></time>
+					<h3 class="itr-kb-article-card__title">
+						<a href="<?php echo esc_url( $_article_url ); ?>" class="itr-kb-article-card__link"><?php the_title(); ?></a>
+					</h3>
+					<?php if ( $_excerpt ) : ?>
+						<div class="itr-kb-article-card__excerpt"><?php echo esc_html( $_excerpt ); ?></div>
+					<?php endif; ?>
+					<div class="itr-kb-article-card__footer">
+						<a href="<?php echo esc_url( $_article_url ); ?>" class="itr-kb-article-card__read-more">
+							<?php esc_html_e( 'Read More', 'itr-knowledgebase' ); ?>
+						</a>
+						<div class="itr-kb-article-card__meta">
+							<span><time datetime="<?php echo esc_attr( get_the_date( 'c' ) ); ?>"><?php printf( esc_html__( 'Posted: %s', 'itr-knowledgebase' ), esc_html( get_the_date() ) ); ?></time></span>
+							<?php if ( $_author_name ) : ?>
+								<span><?php printf( esc_html__( 'Author: %s', 'itr-knowledgebase' ), '<strong>' . esc_html( $_author_name ) . '</strong>' ); ?></span>
+							<?php endif; ?>
+							<?php if ( ! empty( $_reviewer_names ) ) : ?>
+								<span><?php printf( esc_html__( 'Reviewed by: %s', 'itr-knowledgebase' ), '<strong>' . esc_html( implode( ', ', $_reviewer_names ) ) . '</strong>' ); ?></span>
+							<?php endif; ?>
+						</div>
 					</div>
 				</article>
 				<?php

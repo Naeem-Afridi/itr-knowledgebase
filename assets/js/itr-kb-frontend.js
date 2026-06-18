@@ -98,6 +98,15 @@
 	}
 
 	/* =========================================================================
+	   Shared TOC state — lets a manual click "win" over the scroll-spy
+	   recalculation for a short window while the smooth-scroll animation
+	   is still running, so the clicked heading stays highlighted instead
+	   of being immediately overwritten.
+	   ========================================================================= */
+
+	var itrKbTocManualActive = { id: null, until: 0 };
+
+	/* =========================================================================
 	   Live Search
 	   ========================================================================= */
 
@@ -151,9 +160,18 @@
 			} );
 
 			// Keyboard navigation within dropdown.
+			// input.addEventListener( 'keydown', function ( e ) {
+			// 	self.handleKeyboard( e, list, results, input );
+			// } );
 			input.addEventListener( 'keydown', function ( e ) {
-				self.handleKeyboard( e, list, results, input );
-			} );
+
+    if ( e.key === 'Enter' ) {
+        e.preventDefault();
+        return;
+    }
+
+    self.handleKeyboard( e, list, results, input );
+} );
 
 			// Escape closes dropdown.
 			input.addEventListener( 'keyup', function ( e ) {
@@ -258,13 +276,10 @@
 			} );
 
 			// View all link.
-			if ( footer && viewAll && data.total > data.results.length ) {
-				var archiveUrl = itrKbFrontend.restUrl.replace( '/wp-json/itr-kb/v1/', '' ) + '?itr_kb_search=' + encodeURIComponent( keyword );
-				viewAll.href = archiveUrl;
-				footer.removeAttribute( 'hidden' );
-			} else if ( footer ) {
-				footer.setAttribute( 'hidden', '' );
-			}
+			// Hide View All completely.
+if ( footer ) {
+    footer.setAttribute( 'hidden', '' );
+}
 		},
 
 		handleKeyboard: function ( e, list, resultsWrap, input ) {
@@ -280,9 +295,9 @@
 				e.preventDefault();
 				if ( index > 0 ) items[ index - 1 ].focus();
 				else if ( items.length ) items[ items.length - 1 ].focus();
-			} else if ( e.key === 'Enter' && focused ) {
-				focused.click();
-			}
+			} else if ( e.key === 'Enter' ) {
+    e.preventDefault();
+}
 		},
 
 		hideResults: function ( resultsWrap, input ) {
@@ -343,8 +358,22 @@
 			} );
 
 			var onScroll = debounce( function () {
-				var active     = null;
-				var threshold  = getStickyOffset() + 10;
+				// A manual TOC click just fired — let its target stay
+				// highlighted through the smooth-scroll animation instead
+				// of recalculating mid-flight and flipping to a different
+				// heading.
+				if ( Date.now() < itrKbTocManualActive.until ) {
+					return;
+				}
+
+				var active = null;
+				// Cap the spy threshold independently of getStickyOffset()'s
+				// raw value — a false-positive "sticky" element elsewhere on
+				// the page (banners, wrappers, etc.) can inflate that number
+				// well beyond an actual header's height, which made headings
+				// register as "passed" long before they reached the top of
+				// the viewport.
+				var threshold = Math.min( getStickyOffset(), 200 ) + 10;
 
 				headingIds.forEach( function ( id ) {
 					var el = document.getElementById( id );
@@ -353,10 +382,16 @@
 					}
 				} );
 
-				// Force the last heading active when scrolled to the bottom.
-				var nearBottom = ( window.scrollY + window.innerHeight ) >= document.documentElement.scrollHeight - 30;
-				if ( nearBottom && headingIds.length ) {
-					active = headingIds[ headingIds.length - 1 ];
+				// Fallback only: if nothing matched above (e.g. the last
+				// heading is followed by so little content it can never
+				// cross the threshold line) and we're at the very bottom of
+				// the page, default to the last heading. This no longer
+				// overrides an already-correct match.
+				if ( ! active ) {
+					var nearBottom = ( window.scrollY + window.innerHeight ) >= document.documentElement.scrollHeight - 30;
+					if ( nearBottom && headingIds.length ) {
+						active = headingIds[ headingIds.length - 1 ];
+					}
 				}
 
 				links.forEach( function ( link ) {
@@ -457,6 +492,48 @@
 
 	var ITR_KB_AnchorScroll = {
 		init: function () {
+			// ── Auto-inject IDs into headings that lack them ─────────────────
+			// When using an Elementor single article template the Post Content
+			// widget renders headings without id attributes. The TOC links use
+			// href="#some-id" but there is nothing to scroll to. We fix this by
+			// scanning all TOC links, deriving the expected heading text, finding
+			// the matching heading in the content area and injecting the id.
+			var contentArea = (
+				document.querySelector( '.itr-kb-single-article__body' ) ||
+				document.querySelector( '[data-widget_type="theme-post-content.default"] .entry-content' ) ||
+				document.querySelector( '[data-widget_type="wp-widget-post_content.default"] .entry-content' ) ||
+				document.querySelector( '.elementor-widget-theme-post-content .entry-content' ) ||
+				document.querySelector( '.elementor-widget-wp-widget-post_content .entry-content' ) ||
+				document.querySelector( '.entry-content' ) ||
+				document.body
+			);
+
+			document.querySelectorAll( '.itr-kb-toc__link' ).forEach( function ( link ) {
+				var href = link.getAttribute( 'href' );
+				if ( ! href || ! href.startsWith( '#' ) ) return;
+
+				var id = href.slice( 1 );
+				// If a heading already has this ID, nothing to do.
+				if ( document.getElementById( id ) ) return;
+
+				// Try to find the heading whose text matches the TOC link text.
+				var linkText = link.textContent.trim().toLowerCase();
+				var headings = contentArea.querySelectorAll( 'h1, h2, h3, h4, h5, h6' );
+				var matched  = null;
+
+				headings.forEach( function ( h ) {
+					if ( matched ) return;
+					if ( h.textContent.trim().toLowerCase() === linkText ) {
+						matched = h;
+					}
+				} );
+
+				if ( matched && ! matched.id ) {
+					matched.id = id;
+				}
+			} );
+
+			// ── Smooth scroll on TOC link click ──────────────────────────────
 			document.querySelectorAll( '.itr-kb-toc__link' ).forEach( function ( link ) {
 				link.addEventListener( 'click', function ( e ) {
 					var href = link.getAttribute( 'href' );
@@ -464,8 +541,19 @@
 						var target = document.getElementById( href.slice( 1 ) );
 						if ( target ) {
 							e.preventDefault();
+
+							// Mark this link active immediately and tell the
+							// scroll-spy to leave it alone for a moment so it
+							// isn't overwritten mid-animation.
+							itrKbTocManualActive.id    = href.slice( 1 );
+							itrKbTocManualActive.until = Date.now() + 900;
+
+							document.querySelectorAll( '.itr-kb-toc__link' ).forEach( function ( l ) {
+								l.classList.toggle( 'itr-kb-toc__link--active', l === link );
+							} );
+
 							var offset = getStickyOffset();
-							var top    = target.getBoundingClientRect().top + window.scrollY - offset;
+							var top    = target.getBoundingClientRect().top + window.scrollY - offset - 16;
 							window.scrollTo( { top: top, behavior: 'smooth' } );
 
 							// Update URL hash without jump.
@@ -707,10 +795,26 @@
  *
  * Called via onclick on the Print button in single-itr-kb.php
  */
-function itrKbPrintArticle() {
-	var titleEl  = document.querySelector( '.itr-kb-single-article__title' );
-	var metaEl   = document.querySelector( '.itr-kb-single-article__meta' );
-	var bodyEl   = document.querySelector( '.itr-kb-single-article__body' );
+function itrKbPrintArticle(autoPrint) {
+	console.log('itrKbPrintArticle called');
+console.log('autoPrint =', autoPrint);
+console.trace('CALL STACK');
+
+	// Exact selectors confirmed from the Elementor single article template HTML.
+	// Title: Elementor Heading widget (h2 with class elementor-heading-title)
+	var titleEl = document.querySelector(
+		'[data-widget_type="heading.default"] .elementor-heading-title'
+	);
+	// Meta: plugin shortcode renders .itr-kb-meta
+	var metaEl = document.querySelector( '.itr-kb-meta, .itr-kb-single-article__meta' );
+	// Content: Elementor Theme Post Content widget — content is directly inside,
+	// NO .entry-content wrapper exists in this template.
+	var bodyEl = (
+		document.querySelector( '[data-widget_type="theme-post-content.default"]' ) ||
+		document.querySelector( '.elementor-widget-theme-post-content' ) ||
+		document.querySelector( '.itr-kb-single-article__body' ) ||
+		document.querySelector( '.entry-content' )
+	);
 
 	if ( ! bodyEl ) {
 		window.print();
@@ -773,8 +877,174 @@ function itrKbPrintArticle() {
 
 	// setTimeout gives the browser time to fully render the written content
 	// before opening the print dialog. onload is unreliable with document.write.
-	setTimeout( function () {
-		printWindow.focus();
-		printWindow.print();
-	}, 500 );
+	// setTimeout( function () {
+	// 	printWindow.focus();
+	// 	printWindow.print();
+	// }, 500 );
+
+console.log('Reached print section');
+
+if ( autoPrint ) {
+    console.log('About to call printWindow.print()');
+
+    setTimeout(function () {
+        console.log('Executing printWindow.print()');
+        printWindow.focus();
+        printWindow.print();
+    }, 500);
+} else {
+    setTimeout( function () {
+        printWindow.focus();
+    }, 500 );
 }
+}
+/**
+ * itrKbDownloadPDF
+ * Opens the print dialog pre-configured for saving as PDF.
+ * Uses the same clean popup as Print but with a prompt to save as PDF.
+ */
+function itrKbDownloadPDF() {
+	// Reuse the print function — user sees "Save as PDF" in the browser print dialog.
+	 window.itrKbAutoPrint = false;
+}
+
+function itrKbPrintArticleButton() {
+    console.log('PRINT BUTTON WRAPPER CALLED');
+    itrKbPrintArticle(true);
+}
+
+/**
+ * Share button — opens dropdown and wires social share links.
+ */
+( function () {
+	'use strict';
+
+	function initShareButtons() {
+		document.querySelectorAll( '.itr-kb-share' ).forEach( function ( wrap ) {
+			var toggle   = wrap.querySelector( '.itr-kb-share__toggle' );
+			var dropdown = wrap.querySelector( '.itr-kb-share__dropdown' );
+			if ( ! toggle || ! dropdown ) return;
+
+			var url   = wrap.dataset.url   || window.location.href;
+			var title = wrap.dataset.title || document.title;
+
+			// Toggle dropdown.
+			toggle.addEventListener( 'click', function ( e ) {
+				e.stopPropagation();
+				var open = dropdown.hidden === false;
+				// Close all other dropdowns first.
+				document.querySelectorAll( '.itr-kb-share__dropdown' ).forEach( function ( d ) {
+					d.hidden = true;
+					d.closest( '.itr-kb-share' ).querySelector( '.itr-kb-share__toggle' ).setAttribute( 'aria-expanded', 'false' );
+				} );
+				if ( ! open ) {
+					dropdown.hidden = false;
+					toggle.setAttribute( 'aria-expanded', 'true' );
+				}
+			} );
+
+			// Close on outside click.
+			document.addEventListener( 'click', function () {
+				dropdown.hidden = true;
+				toggle.setAttribute( 'aria-expanded', 'false' );
+			} );
+
+			dropdown.addEventListener( 'click', function ( e ) {
+				e.stopPropagation();
+			} );
+
+			// Wire platform links.
+			dropdown.querySelectorAll( '.itr-kb-share__option[data-platform]' ).forEach( function ( el ) {
+				var platform = el.dataset.platform;
+				var shareUrl = '';
+
+				switch ( platform ) {
+					case 'twitter':
+						shareUrl = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent( url ) + '&text=' + encodeURIComponent( title );
+						el.href = shareUrl;
+						break;
+					case 'facebook':
+						shareUrl = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent( url );
+						el.href = shareUrl;
+						break;
+					case 'linkedin':
+						shareUrl = 'https://www.linkedin.com/shareArticle?mini=true&url=' + encodeURIComponent( url ) + '&title=' + encodeURIComponent( title );
+						el.href = shareUrl;
+						break;
+					case 'whatsapp':
+						shareUrl = 'https://wa.me/?text=' + encodeURIComponent( title + ' ' + url );
+						el.href = shareUrl;
+						break;
+					case 'email':
+						el.href = 'mailto:?subject=' + encodeURIComponent( title ) + '&body=' + encodeURIComponent( url );
+						break;
+					case 'copy':
+						el.addEventListener( 'click', function ( e ) {
+							e.preventDefault();
+							navigator.clipboard.writeText( url ).then( function () {
+								el.classList.add( 'itr-kb-share__copy--copied' );
+								setTimeout( function () {
+									el.classList.remove( 'itr-kb-share__copy--copied' );
+									dropdown.hidden = true;
+									toggle.setAttribute( 'aria-expanded', 'false' );
+								}, 1800 );
+							} ).catch( function () {
+								// Fallback for older browsers.
+								var ta = document.createElement( 'textarea' );
+								ta.value = url;
+								ta.style.position = 'fixed';
+								ta.style.opacity  = '0';
+								document.body.appendChild( ta );
+								ta.select();
+								document.execCommand( 'copy' );
+								document.body.removeChild( ta );
+								el.classList.add( 'itr-kb-share__copy--copied' );
+								setTimeout( function () {
+									el.classList.remove( 'itr-kb-share__copy--copied' );
+									dropdown.hidden = true;
+									toggle.setAttribute( 'aria-expanded', 'false' );
+								}, 1800 );
+							} );
+						} );
+						break;
+				}
+			} );
+		} );
+	}
+
+	if ( document.readyState === 'loading' ) {
+		document.addEventListener( 'DOMContentLoaded', initShareButtons );
+	} else {
+		initShareButtons();
+	}
+} )();
+
+/**
+ * Hide empty Elementor Post Navigation boxes (Issue #10).
+ * Runs on DOMContentLoaded — removes both the box AND its space
+ * when there is no prev or next article.
+ */
+( function () {
+	'use strict';
+
+	function hideEmptyPostNav() {
+		var sides = document.querySelectorAll(
+			'.elementor-post-navigation__prev, .elementor-post-navigation__next'
+		);
+		sides.forEach( function ( el ) {
+			// Elementor adds this class when no article exists in that direction.
+			var disabled   = el.querySelector( '.elementor-post-navigation__link--disabled' );
+			// Fallback: check if there's no <a> with an href at all.
+			var hasLink    = el.querySelector( 'a[href]' );
+			if ( disabled || ! hasLink ) {
+				el.style.cssText = 'display:none!important;width:0!important;min-width:0!important;padding:0!important;margin:0!important;';
+			}
+		} );
+	}
+
+	if ( document.readyState === 'loading' ) {
+		document.addEventListener( 'DOMContentLoaded', hideEmptyPostNav );
+	} else {
+		hideEmptyPostNav();
+	}
+} )();

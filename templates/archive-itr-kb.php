@@ -12,12 +12,19 @@
 use ITR_Knowledgebase\Admin\ITR_KB_Category_Order;
 use ITR_Knowledgebase\Taxonomies\ITR_KB_Category;
 use ITR_Knowledgebase\Helpers\ITR_KB_Query;
+use ITR_Knowledgebase\Helpers\ITR_KB_Utils;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 get_header();
+
+// If Elementor Pro Theme Builder has an active archive template, let it render.
+if ( function_exists( 'elementor_theme_do_location' ) && elementor_theme_do_location( 'archive' ) ) {
+	get_footer();
+	return;
+}
 
 $is_archive  = is_post_type_archive( 'itr_kb_article' );
 $is_category = is_tax( 'itr_kb_category' );
