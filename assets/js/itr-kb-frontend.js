@@ -776,6 +776,33 @@ if ( footer ) {
 		ITR_KB_CategoryTree.init();
 		ITR_KB_Accordion.init();
 		ITR_KB_AnchorScroll.init();
+
+
+		// Fallback: assign missing heading IDs by matching TOC link text.
+// Handles headings containing curly quotes which PHP sanitize_title()
+// encodes differently between raw DB content and rendered HTML,
+// causing the server-side ID injection to silently fail for those headings.
+document.querySelectorAll( '.itr-kb-toc__link' ).forEach( function ( link ) {
+    var href = link.getAttribute( 'href' );
+    if ( ! href || ! href.startsWith( '#' ) ) return;
+    var targetId = href.slice( 1 );
+    if ( document.getElementById( targetId ) ) return;
+
+    function normalizeText( str ) {
+        return str.trim()
+            .replace( /[\u201C\u201D]/g, '"' )
+            .replace( /[\u2018\u2019]/g, "'" );
+    }
+
+    var linkText = normalizeText( link.textContent );
+    document.querySelectorAll( 'h2,h3,h4' ).forEach( function ( h ) {
+        if ( ! h.id && normalizeText( h.textContent ) === linkText ) {
+            h.id = targetId;
+        }
+    } );
+} );
+
+
 		ITR_KB_KeyboardNav.init();
 		ITR_KB_ViewCount.init();
 		ITR_KB_ArchiveSidebar.init();
@@ -861,7 +888,7 @@ console.trace('CALL STACK');
 		'.itr-print-body th, .itr-print-body td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }',
 		'.itr-print-body th { background: #f5f5f5; font-weight: bold; }',
 		/* Hide Elementor widget controls, TOC, and other UI-only elements */
-		'.elementor-editor-active, .itr-kb-toc, button, .itr-kb-article-nav { display: none !important; }',
+		'.elementor-editor-active, .itr-kb-toc, .itr-kb-article-nav { display: none !important; }',
 		'@media print {',
 		'  body { padding: 0; }',
 		'  @page { margin: 20mm 15mm; }',
@@ -872,7 +899,16 @@ console.trace('CALL STACK');
 	printWindow.document.write( '<h1 class="itr-print-title">' + title + '</h1>' );
 	printWindow.document.write( meta );
 	printWindow.document.write( '<div class="itr-print-body">' + body + '</div>' );
+	if ( ! autoPrint ) {
+		printWindow.document.write(
+			'<div style="position:fixed;bottom:24px;right:24px;">' +
+				'<button onclick="window.print()" style="background:#2563eb;color:#fff;border:none;padding:12px 24px;font-size:14pt;border-radius:8px;cursor:pointer;">⬇ Download as PDF</button>' +
+			'</div>'
+		);
+	}
 	printWindow.document.write( '</body></html>' );
+	// printWindow.document.write( '<div class="itr-print-body">' + body + '</div>' );
+	// printWindow.document.write( '</body></html>' );
 	printWindow.document.close();
 
 	// setTimeout gives the browser time to fully render the written content
@@ -904,12 +940,72 @@ if ( autoPrint ) {
  * Uses the same clean popup as Print but with a prompt to save as PDF.
  */
 function itrKbDownloadPDF() {
-	// Reuse the print function — user sees "Save as PDF" in the browser print dialog.
-	 window.itrKbAutoPrint = false;
+    var bodyEl = (
+        document.querySelector( '[data-widget_type="theme-post-content.default"]' ) ||
+        document.querySelector( '.elementor-widget-theme-post-content' ) ||
+        document.querySelector( '.itr-kb-single-article__body' ) ||
+        document.querySelector( '.entry-content' )
+    );
+    if ( ! bodyEl ) return;
+
+    var rawTitle = document.title.split( '|' )[0].split( '-' ).slice( 0, -1 ).join( '-' ).trim() || document.title.trim();
+    rawTitle = rawTitle.replace( /\u00A0/g, ' ' ).trim();
+    var fileName = rawTitle + '.pdf';
+
+    function doRender() {
+        var clone = bodyEl.cloneNode( true );
+        clone.removeAttribute( 'class' );
+        clone.removeAttribute( 'id' );
+        clone.style.cssText = 'font-family: Georgia, "Times New Roman", serif; font-size: 11pt; font-weight: 400; line-height: 1.7; color: #111; background: #fff; width: 750px; padding: 0; margin: 0;';
+
+        clone.querySelectorAll( 'p, li, td, span' ).forEach( function( el ) {
+            el.style.fontWeight = '400';
+        } );
+        clone.querySelectorAll( 'p, h2, h3, h4, li' ).forEach( function( el ) {
+            el.style.paddingTop = '6px';
+            el.style.paddingBottom = '6px';
+        } );
+
+        var titleNode = document.createElement( 'h1' );
+        titleNode.textContent = rawTitle;
+        titleNode.style.cssText = 'font-size: 20pt; font-weight: bold; margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 2px solid #ddd; font-family: Georgia, serif;';
+        clone.insertBefore( titleNode, clone.firstChild );
+
+        // Fixed at viewport top with near-zero opacity — html2canvas can render it
+        // but user never sees it. scrollX/scrollY:0 tells html2canvas the element
+        // is at document position (0,0) so no blank space appears above content.
+        var host = document.createElement( 'div' );
+        host.style.cssText = 'position:fixed;top:0;left:0;width:750px;opacity:0.001;pointer-events:none;z-index:-1;background:#fff;';
+        host.appendChild( clone );
+        document.body.appendChild( host );
+
+        var opt = {
+            margin:      [ 10, 10 ],
+            filename:    fileName,
+            image:       { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 1.5, useCORS: true, logging: false, scrollX: 0, scrollY: 0 },
+            jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        };
+
+        html2pdf().set( opt ).from( clone ).save().then( function() {
+            if ( host.parentNode ) document.body.removeChild( host );
+        } ).catch( function() {
+            if ( host.parentNode ) document.body.removeChild( host );
+        } );
+    }
+
+    if ( typeof html2pdf !== 'undefined' ) {
+        doRender();
+        return;
+    }
+
+    var script = document.createElement( 'script' );
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    script.onload = doRender;
+    document.head.appendChild( script );
 }
 
 function itrKbPrintArticleButton() {
-    console.log('PRINT BUTTON WRAPPER CALLED');
     itrKbPrintArticle(true);
 }
 

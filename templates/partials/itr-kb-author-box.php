@@ -48,22 +48,25 @@ $_reviewer = ! empty( $reviewer_ids ) ? itr_kb_get_person_data( $reviewer_ids[0]
 	<div class="itr-kb-author-box itr-kb-author-box--compact" itemscope itemtype="https://schema.org/Person">
 
 		<?php if ( $_author ) : ?>
-			<div class="itr-kb-author-box__compact-row itr-kb-author-box__compact-row--author">
-				<div class="itr-kb-author-box__compact-avatar">
-					<?php if ( $_author['photo'] ) : ?>
-						<img src="<?php echo esc_url( $_author['photo'] ); ?>" alt="<?php echo esc_attr( $_author['name'] ); ?>" width="44" height="44" loading="lazy" />
-					<?php else : ?>
-						<span class="dashicons dashicons-admin-users" aria-hidden="true"></span>
-					<?php endif; ?>
-				</div>
-				<div class="itr-kb-author-box__compact-info">
-					<span class="itr-kb-author-box__compact-label"><?php esc_html_e( 'Written By', 'itr-knowledgebase' ); ?></span>
-					<span class="itr-kb-author-box__compact-name" itemprop="name"><?php echo esc_html( $_author['name'] ); ?></span>
-					<?php if ( $_author['role'] ) : ?>
-						<span class="itr-kb-author-box__compact-role"><?php echo esc_html( $_author['role'] ); ?></span>
-					<?php endif; ?>
-				</div>
-			</div>
+		<div class="itr-kb-author-box__compact-row itr-kb-author-box__compact-row--author">
+    <div class="itr-kb-author-box__compact-avatar">
+        <?php if ( $_author['photo'] ) : ?>
+            <img src="<?php echo esc_url( $_author['photo'] ); ?>" alt="<?php echo esc_attr( $_author['name'] ); ?>" width="44" height="44" loading="lazy" />
+        <?php else : ?>
+            <span class="dashicons dashicons-admin-users" aria-hidden="true"></span>
+        <?php endif; ?>
+    </div>
+    <div class="itr-kb-author-box__compact-info">
+        <span class="itr-kb-author-box__compact-label"><?php esc_html_e( 'Written By', 'itr-knowledgebase' ); ?></span>
+        <span class="itr-kb-author-box__compact-name" itemprop="name"><?php echo esc_html( $_author['name'] ); ?></span>
+        <?php if ( $_author['role'] ) : ?>
+            <span class="itr-kb-author-box__compact-role"><?php echo esc_html( $_author['role'] ); ?></span>
+        <?php endif; ?>
+    </div>
+</div>
+<?php if ( $_author['bio'] ) : ?>
+    <div class="itr-kb-author-box__compact-bio" itemprop="description"><?php echo wp_kses_post( $_author['bio'] ); ?></div>
+<?php endif; ?>
 		<?php endif; ?>
 
 		<?php if ( $_reviewer ) : ?>

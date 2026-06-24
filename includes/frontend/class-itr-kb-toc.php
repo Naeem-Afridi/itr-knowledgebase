@@ -58,27 +58,61 @@ class ITR_KB_TOC {
 	 * @return array Array of heading data: [ tag, text, id ].
 	 */
 	public function parse_headings( $content ) {
-		$headings = array();
-		$pattern  = '/<(h[2-4])[^>]*>(.*?)<\/h[2-4]>/is';
+    $headings = array();
+    // Capture attributes group separately so we can detect existing id=
+    $pattern  = '/<(h[2-4])([^>]*)>(.*?)<\/h[2-4]>/is';
 
-		preg_match_all( $pattern, $content, $matches, PREG_SET_ORDER );
+    preg_match_all( $pattern, $content, $matches, PREG_SET_ORDER );
 
-		$id_counts = array();
+    $id_counts = array();
 
-		foreach ( $matches as $match ) {
-			$tag  = strtolower( $match[1] );
-			$text = wp_strip_all_tags( $match[2] );
-			$id   = $this->generate_heading_id( $text, $id_counts );
+    foreach ( $matches as $match ) {
+        $tag   = strtolower( $match[1] );
+        $attrs = $match[2];
+        $text  = wp_strip_all_tags( $match[3] );
 
-			$headings[] = array(
-				'tag'  => $tag,
-				'text' => $text,
-				'id'   => $id,
-			);
-		}
+        // If Gutenberg (or any editor) already assigned an id to this
+        // heading, use it directly so the TOC link matches the real DOM id.
+        // Otherwise generate our own itr-kb- prefixed id as before.
+        $existing_id = '';
+        if ( preg_match( '/\bid=["\']([^"\']+)["\']/', $attrs, $id_match ) ) {
+            $existing_id = $id_match[1];
+        }
 
-		return $headings;
-	}
+        $id = $existing_id ? $existing_id : $this->generate_heading_id( $text, $id_counts );
+
+        $headings[] = array(
+            'tag'  => $tag,
+            'text' => $text,
+            'id'   => $id,
+        );
+    }
+
+    return $headings;
+}
+
+	// public function parse_headings( $content ) {
+	// 	$headings = array();
+	// 	$pattern  = '/<(h[2-4])[^>]*>(.*?)<\/h[2-4]>/is';
+
+	// 	preg_match_all( $pattern, $content, $matches, PREG_SET_ORDER );
+
+	// 	$id_counts = array();
+
+	// 	foreach ( $matches as $match ) {
+	// 		$tag  = strtolower( $match[1] );
+	// 		$text = wp_strip_all_tags( $match[2] );
+	// 		$id   = $this->generate_heading_id( $text, $id_counts );
+
+	// 		$headings[] = array(
+	// 			'tag'  => $tag,
+	// 			'text' => $text,
+	// 			'id'   => $id,
+	// 		);
+	// 	}
+
+	// 	return $headings;
+	// }
 
 	/**
 	 * Generate a unique slug-based ID for a heading.
@@ -118,44 +152,108 @@ class ITR_KB_TOC {
 	 * @param array  $headings Parsed headings with IDs.
 	 * @return string
 	 */
+
 	private function add_heading_anchors( $content, $headings ) {
-		$index   = 0;
-		$pattern = '/<(h[2-4])([^>]*)>(.*?)<\/(h[2-4])>/is';
+    if ( empty( $headings ) || empty( $content ) ) {
+        return $content;
+    }
 
-		$content = preg_replace_callback(
-			$pattern,
-			function ( $matches ) use ( $headings, &$index ) {
-				if ( ! isset( $headings[ $index ] ) ) {
-					return $matches[0];
-				}
+    // Build a slug → id lookup keyed by the normalised heading text.
+    // Text-based matching is immune to the index drift that occurs when
+    // add_heading_anchors() runs on raw Gutenberg content (block comments
+    // included) while parse_headings() ran on a slightly different version,
+    // causing position-based indices to go out of sync for specific headings.
+    $id_map = array();
+    foreach ( $headings as $heading ) {
+$key = sanitize_title( html_entity_decode( $heading['text'], ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ); 
+       if ( $key && ! isset( $id_map[ $key ] ) ) {
+            $id_map[ $key ] = $heading['id'];
+        }
+    }
 
-				$tag        = $matches[1];
-				$attrs      = $matches[2];
-				$text       = $matches[3];
-				$heading_id = esc_attr( $headings[ $index ]['id'] );
+    // The u flag treats the pattern and subject as UTF-8, which correctly
+    // handles multi-byte characters like curly quotes (\u{201C}, \u{201D})
+    // that appear in heading text — without it those sequences can confuse
+    // the regex engine and cause specific headings to be silently skipped.
+    $pattern = '/<(h[2-4])([^>]*)>(.*?)<\/(h[2-4])>/isu';
 
-				// Avoid duplicate IDs if heading already has one.
-				if ( strpos( $attrs, 'id=' ) !== false ) {
-					$index++;
-					return $matches[0];
-				}
+    $result = preg_replace_callback(
+        $pattern,
+        function ( $matches ) use ( $id_map ) {
+            $tag   = $matches[1];
+            $attrs = $matches[2];
+            $inner = $matches[3];
 
-				$index++;
+            // Skip if heading already has an id.
+            if ( strpos( $attrs, 'id=' ) !== false ) {
+                return $matches[0];
+            }
 
-				return sprintf(
-					'<%s%s id="%s">%s</%s>',
-					esc_html( $tag ),
-					$attrs,
-					$heading_id,
-					$text,
-					esc_html( $tag )
-				);
-			},
-			$content
-		);
+            // Normalise inner HTML to a slug for lookup — decode entities
+            // first so &#8220; and the actual Unicode curly quote both
+            // produce the same slug and correctly match the id_map key.
+            $slug = sanitize_title(
+                html_entity_decode( wp_strip_all_tags( $inner ), ENT_QUOTES | ENT_HTML5, 'UTF-8' )
+            );
 
-		return $content;
-	}
+            if ( ! isset( $id_map[ $slug ] ) ) {
+                return $matches[0];
+            }
+
+            return sprintf(
+                '<%s%s id="%s">%s</%s>',
+                esc_html( $tag ),
+                $attrs,
+                esc_attr( $id_map[ $slug ] ),
+                $inner,
+                esc_html( $tag )
+            );
+        },
+        $content
+    );
+
+    // preg_replace_callback returns null on error — fall back to original.
+    return $result ?? $content;
+}
+
+	// private function add_heading_anchors( $content, $headings ) {
+	// 	$index   = 0;
+	// 	$pattern = '/<(h[2-4])([^>]*)>(.*?)<\/(h[2-4])>/is';
+
+	// 	$content = preg_replace_callback(
+	// 		$pattern,
+	// 		function ( $matches ) use ( $headings, &$index ) {
+	// 			if ( ! isset( $headings[ $index ] ) ) {
+	// 				return $matches[0];
+	// 			}
+
+	// 			$tag        = $matches[1];
+	// 			$attrs      = $matches[2];
+	// 			$text       = $matches[3];
+	// 			$heading_id = esc_attr( $headings[ $index ]['id'] );
+
+	// 			// Avoid duplicate IDs if heading already has one.
+	// 			if ( strpos( $attrs, 'id=' ) !== false ) {
+	// 				$index++;
+	// 				return $matches[0];
+	// 			}
+
+	// 			$index++;
+
+	// 			return sprintf(
+	// 				'<%s%s id="%s">%s</%s>',
+	// 				esc_html( $tag ),
+	// 				$attrs,
+	// 				$heading_id,
+	// 				$text,
+	// 				esc_html( $tag )
+	// 			);
+	// 		},
+	// 		$content
+	// 	);
+
+	// 	return $content;
+	// }
 
 	/**
 	 * Build TOC HTML from headings array.

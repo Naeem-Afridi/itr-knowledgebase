@@ -190,7 +190,7 @@ class ITR_KB_Shortcodes {
 		?>
 		<button
 			class="itr-kb-single-article__action-btn itr-kb-single-article__download"
-			onclick="itrKbPrintArticle()"
+			onclick="itrKbDownloadPDF()"
 			aria-label="<?php echo esc_attr( $label ); ?>"
 		>
 			<?php echo wp_kses_post( $icon_html ); ?>
